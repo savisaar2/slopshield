@@ -1,0 +1,7 @@
+{
+  "name": "test-project",
+  "dependencies": {
+    "express": "^4.18.2",
+    "slop-package-that-does-not-exist": "1.0.0"
+  }
+}
