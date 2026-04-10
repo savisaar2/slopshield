@@ -9,6 +9,7 @@ import (
 	"github.com/savisaar2/slopshield/internal/sarif"
 	"github.com/savisaar2/slopshield/internal/scanner"
 	"github.com/savisaar2/slopshield/internal/slopignore"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +31,8 @@ var (
 			}
 
 			output, _ := cmd.Flags().GetString("output")
+			interactive, _ := cmd.Flags().GetBool("interactive")
+
 			if output == "text" {
 				fmt.Printf("🔍 Scanning project at: %s\n", path)
 			}
@@ -63,26 +66,60 @@ var (
 					continue
 				}
 
+				isHallucination := false
 				// Check known list first
 				if knownHallucinations[dep.Name] {
 					if output == "text" {
 						fmt.Printf("🚨 KNOWN Hallucination Found: %s (%s)\n", dep.Name, dep.Source)
 					}
-					hallucinatedDeps = append(hallucinatedDeps, dep.Name)
-					continue
-				}
-
-				exists, err := npmRegistry.Exists(dep.Name)
-				if err != nil {
-					if output == "text" {
-						fmt.Printf("⚠️ Error checking %s: %v\n", dep.Name, err)
+					isHallucination = true
+				} else {
+					exists, err := npmRegistry.Exists(dep.Name)
+					if err != nil {
+						if output == "text" {
+							fmt.Printf("⚠️ Error checking %s: %v\n", dep.Name, err)
+						}
+						continue
 					}
-					continue
+
+					if !exists {
+						if output == "text" {
+							fmt.Printf("🚨 Potential Hallucination Found: %s (%s)\n", dep.Name, dep.Source)
+						}
+						isHallucination = true
+					}
 				}
 
-				if !exists {
-					if output == "text" {
-						fmt.Printf("🚨 Potential Hallucination Found: %s (%s)\n", dep.Name, dep.Source)
+				if isHallucination {
+					if interactive {
+						var action string
+						form := huh.NewForm(
+							huh.NewGroup(
+								huh.NewNote().
+									Title("Security Alert").
+									Description(fmt.Sprintf("Package '%s' looks like a hallucination.", dep.Name)),
+								huh.NewSelect[string]().
+									Title("How do you want to handle this?").
+									Options(
+										huh.NewOption("Keep (ignore in future)", "ignore"),
+										huh.NewOption("Report as confirmed hallucination", "report"),
+										huh.NewOption("Do nothing", "none"),
+									).
+									Value(&action),
+							),
+						)
+
+						if err := form.Run(); err != nil {
+							return err
+						}
+
+						if action == "ignore" {
+							if err := ignoreList.Add(path, dep.Name); err != nil {
+								fmt.Printf("❌ Error adding to .slopignore: %v\n", err)
+							} else {
+								fmt.Printf("✅ Added %s to .slopignore\n", dep.Name)
+							}
+						}
 					}
 					hallucinatedDeps = append(hallucinatedDeps, dep.Name)
 				}
@@ -110,6 +147,7 @@ var (
 func init() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif)")
+	scanCmd.Flags().BoolP("interactive", "i", false, "Enable interactive mode for manual intervention")
 }
 
 func main() {

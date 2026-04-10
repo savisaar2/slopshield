@@ -42,3 +42,17 @@ func (l *IgnoreList) IsIgnored(name string) bool {
 	}
 	return false
 }
+
+func (l *IgnoreList) Add(path string, name string) error {
+	f, err := os.OpenFile(filepath.Join(path, ".slopignore"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(name + "\n"); err != nil {
+		return err
+	}
+	l.patterns = append(l.patterns, name)
+	return nil
+}
