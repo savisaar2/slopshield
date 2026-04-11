@@ -17,14 +17,21 @@ SlopShield is a local-first security tool designed to protect developers from "A
 
 ---
 
-## 🛠️ Installation
+## 🛠️ Installation & Setup
 
-```bash
-git clone https://github.com/savisaar2/slopshield.git
-cd slopshield
-go build -o slopshield.exe cmd/slopshield/main.go
-go build -o slop-prober.exe cmd/slop-prober/main.go
-```
+To maintain your own private hallucination registry while staying updated with the core tool, it is recommended to **fork** this repository.
+
+1.  **Fork the repo** on GitHub.
+2.  **Clone your fork**:
+    ```bash
+    git clone https://github.com/<YOUR_USERNAME>/slopshield.git
+    cd slopshield
+    ```
+3.  **Build the tools**:
+    ```bash
+    go build -o slopshield.exe cmd/slopshield/main.go
+    go build -o slop-prober.exe cmd/slop-prober/main.go
+    ```
 
 ---
 
