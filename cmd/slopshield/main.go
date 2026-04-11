@@ -1,12 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/savisaar2/slopshield/internal/aggregator"
 	"github.com/savisaar2/slopshield/internal/registry"
 	"github.com/savisaar2/slopshield/internal/sarif"
 	"github.com/savisaar2/slopshield/internal/scanner"
@@ -59,29 +58,18 @@ var (
 				return fmt.Errorf("error loading ignore list: %w", err)
 			}
 
-			// Load known hallucinations from cache
-			agg := aggregator.NewAggregator()
-			cacheFile := ".slop_cache"
-			// ... (rest of sync logic stays same)
-
-			// Auto-sync if cache is older than 24 hours
-			if info, err := os.Stat(cacheFile); err == nil {
-				if time.Since(info.ModTime()) > 24*time.Hour {
-					if output == "text" {
-						fmt.Println("🔄 Local cache is outdated. Auto-syncing...")
+			// Load known hallucinations from local registry files
+			knownHallucinations := make(map[string]bool)
+			registryFiles, _ := filepath.Glob("registry/*.json")
+			for _, rf := range registryFiles {
+				if data, err := os.ReadFile(rf); err == nil {
+					var fileCache map[string]bool
+					if err := json.Unmarshal(data, &fileCache); err == nil {
+						for k, v := range fileCache {
+							knownHallucinations[k] = v
+						}
 					}
-					_, _ = agg.Sync(cacheFile)
 				}
-			} else if os.IsNotExist(err) {
-				if output == "text" {
-					fmt.Println("🔄 No local cache found. Syncing for the first time...")
-				}
-				_, _ = agg.Sync(cacheFile)
-			}
-
-			knownHallucinations, err := agg.LoadCache(cacheFile)
-			if err != nil && output == "text" {
-				knownHallucinations = make(map[string]bool)
 			}
 
 			// Detect ecosystems
@@ -256,26 +244,10 @@ var (
 			return nil
 		},
 	}
-
-	syncCmd = &cobra.Command{
-		Use:   "sync",
-		Short: "Fetch and update the local hallucination registry",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("🔄 Syncing hallucination registries...")
-			agg := aggregator.NewAggregator()
-			count, err := agg.Sync(".slop_cache")
-			if err != nil {
-				return fmt.Errorf("sync failed: %w", err)
-			}
-			fmt.Printf("✅ Successfully synced %d known hallucinated packages to .slop_cache\n", count)
-			return nil
-		},
-	}
 )
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
-	rootCmd.AddCommand(syncCmd)
 	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif)")
 	scanCmd.Flags().BoolP("interactive", "i", false, "Enable interactive mode for manual intervention")
 }

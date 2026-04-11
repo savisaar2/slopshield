@@ -1,0 +1,34 @@
+name: SlopShield CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Build SlopShield
+      run: go build -v -o slopshield ./cmd/slopshield/main.go
+
+    - name: Build Slop-Prober
+      run: go build -v -o slop-prober ./cmd/slop-prober/main.go
+
+    - name: Build Slop-Hunter
+      run: go build -v -o slop-hunter ./cmd/slop-hunter/main.go
+
+    - name: Run Self-Scan Test
+      # This ensures the scanner can at least run on its own codebase
+      run: ./slopshield scan .
