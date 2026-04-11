@@ -28,6 +28,46 @@ go build -o slop-prober.exe cmd/slop-prober/main.go
 
 ---
 
+## 🐳 Docker Support
+
+If you don't want to install the Go toolchain locally, you can use SlopShield via Docker.
+
+### 1. Build the Image
+```bash
+docker build -t slopshield .
+```
+
+### 2. Run a Scan
+To scan a local project directory, mount it into the container's `/scan` directory:
+```bash
+# On Linux/macOS
+docker run --rm -v $(pwd):/scan slopshield scan /scan
+
+# On Windows (PowerShell)
+docker run --rm -v ${PWD}:/scan slopshield scan /scan
+```
+
+### 3. Persist Your Personal Registry
+If you want to keep your aggregated findings between container runs, mount your local `registry` folder as well:
+```bash
+docker run --rm \
+  -v $(pwd):/scan \
+  -v $(pwd)/registry:/app/registry \
+  slopshield scan /scan
+```
+
+### 4. Run the Prober or Hunter
+You can run the other maintenance tools by overriding the entrypoint:
+```bash
+# Run the prober
+docker run --rm --entrypoint /app/slop-prober slopshield --ecosystem npm
+
+# Run the hunter
+docker run --rm --entrypoint /app/slop-hunter slopshield --update npm "fake-pkg-1,fake-pkg-2"
+```
+
+---
+
 ## ⚙️ Configuration
 
 SlopShield uses `slopshield.yaml` for API keys and local settings.
