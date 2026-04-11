@@ -13,7 +13,6 @@ import (
         "github.com/savisaar2/slopshield/internal/sarif"
         "github.com/savisaar2/slopshield/internal/scanner"
         "github.com/savisaar2/slopshield/internal/slopignore"
-        "github.com/charmbracelet/huh"
         "github.com/charmbracelet/lipgloss"
         "github.com/spf13/cobra"
         "golang.org/x/sync/errgroup"
@@ -43,6 +42,7 @@ var (
 		Short: "Scan a project for hallucinated packages",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+            // ... (keep existing scan logic)
 			path := "."
 			if len(args) > 0 {
 				path = args[0]
@@ -237,10 +237,48 @@ var (
 			return nil
 		},
 	}
+
+	registryCmd = &cobra.Command{
+		Use:   "registry",
+		Short: "Manage local registries",
+	}
+
+	clearRegistryCmd = &cobra.Command{
+		Use:   "clear [ecosystem]",
+		Short: "Clear local registry entries",
+		Long:  "Empty one or all local registry JSON files. If no ecosystem is specified, all are cleared.",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pattern := "registry/*.json"
+			if len(args) > 0 {
+				pattern = fmt.Sprintf("registry/%s.json", args[0])
+			}
+
+			files, err := filepath.Glob(pattern)
+			if err != nil {
+				return err
+			}
+
+			if len(files) == 0 {
+				return fmt.Errorf("no registry files found matching: %s", pattern)
+			}
+
+			for _, f := range files {
+				if err := os.WriteFile(f, []byte("{}"), 0644); err != nil {
+					return fmt.Errorf("failed to clear %s: %w", f, err)
+				}
+				fmt.Printf("✅ Cleared %s\n", f)
+			}
+			return nil
+		},
+	}
 )
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(registryCmd)
+	registryCmd.AddCommand(clearRegistryCmd)
+
 	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif)")
 	scanCmd.Flags().BoolP("interactive", "i", false, "Enable interactive mode for manual intervention")
 }
