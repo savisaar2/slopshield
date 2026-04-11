@@ -50,19 +50,41 @@ var (
 				knownHallucinations = make(map[string]bool)
 			}
 
-			npmScanner := &scanner.NPMScanner{}
-			deps, err := npmScanner.Scan(path)
-			if err != nil {
-				return fmt.Errorf("error scanning dependencies: %w", err)
+			// Detect ecosystems
+			var activeScanners []scanner.Scanner
+			var registries []registry.Registry
+			var sourceFiles []string
+
+			if _, err := os.Stat(filepath.Join(path, "package.json")); err == nil {
+				activeScanners = append(activeScanners, &scanner.NPMScanner{})
+				registries = append(registries, registry.NewNPMRegistry())
+				sourceFiles = append(sourceFiles, "package.json")
+			}
+			if _, err := os.Stat(filepath.Join(path, "pubspec.yaml")); err == nil {
+				activeScanners = append(activeScanners, &scanner.PubScanner{})
+				registries = append(registries, registry.NewPubRegistry())
+				sourceFiles = append(sourceFiles, "pubspec.yaml")
+			}
+
+			if len(activeScanners) == 0 {
+				return fmt.Errorf("no supported manifest file (package.json, pubspec.yaml) found in %s", path)
+			}
+
+			var allDeps []scanner.Dependency
+			for _, s := range activeScanners {
+				deps, err := s.Scan(path)
+				if err != nil {
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			}
 
 			if output == "text" {
-				fmt.Printf("📦 Found %d dependencies\n", len(deps))
+				fmt.Printf("📦 Found %d dependencies across %d ecosystem(s)\n", len(allDeps), len(activeScanners))
 			}
 
-			npmRegistry := registry.NewNPMRegistry()
 			var hallucinatedDeps []string
-			for _, dep := range deps {
+			for _, dep := range allDeps {
 				if ignoreList.IsIgnored(dep.Name) {
 					if output == "text" {
 						fmt.Printf("🙈 Ignoring %s (matched in .slopignore)\n", dep.Name)
@@ -78,7 +100,20 @@ var (
 					}
 					isHallucination = true
 				} else {
-					exists, err := npmRegistry.Exists(dep.Name)
+					// Check corresponding registry
+					var reg registry.Registry
+					if dep.Source == "package.json" {
+						reg = registries[0] // Simplify for now: map correctly in future
+					} else if dep.Source == "pubspec.yaml" {
+						// Find correct registry
+						for i, f := range sourceFiles {
+							if f == "pubspec.yaml" {
+								reg = registries[i]
+							}
+						}
+					}
+
+					exists, err := reg.Exists(dep.Name)
 					if err != nil {
 						if output == "text" {
 							fmt.Printf("⚠️ Error checking %s: %v\n", dep.Name, err)
