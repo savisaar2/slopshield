@@ -19,18 +19,35 @@ func (s *GoScanner) Scan(path string) ([]Dependency, error) {
 
 	var deps []Dependency
 	scanner := bufio.NewScanner(file)
+	inRequireBlock := false
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		// Basic parsing for 'require package/name version'
-		if strings.HasPrefix(line, "require") {
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+
+		if line == "require (" {
+			inRequireBlock = true
+			continue
+		}
+		if line == ")" && inRequireBlock {
+			inRequireBlock = false
+			continue
+		}
+
+		if inRequireBlock {
 			parts := strings.Fields(line)
 			if len(parts) >= 2 {
-				name := parts[1]
-				version := ""
-				if len(parts) >= 3 {
-					version = parts[2]
-				}
-				deps = append(deps, Dependency{Name: name, Version: version, Source: "go.mod"})
+				deps = append(deps, Dependency{Name: parts[0], Version: parts[1], Source: "go.mod"})
+			}
+			continue
+		}
+
+		if strings.HasPrefix(line, "require") {
+			parts := strings.Fields(line)
+			if len(parts) >= 3 {
+				deps = append(deps, Dependency{Name: parts[1], Version: parts[2], Source: "go.mod"})
 			}
 		}
 	}
