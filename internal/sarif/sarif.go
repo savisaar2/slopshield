@@ -29,6 +29,14 @@ type Driver struct {
 type Rule struct {
 	ID               string           `json:"id"`
 	ShortDescription ShortDescription `json:"shortDescription"`
+	FullDescription  ShortDescription `json:"fullDescription,omitempty"`
+	HelpURI          string           `json:"helpUri,omitempty"`
+	Help             Help             `json:"help,omitempty"`
+}
+
+type Help struct {
+	Text     string `json:"text,omitempty"`
+	Markdown string `json:"markdown,omitempty"`
 }
 
 type ShortDescription struct {
@@ -73,6 +81,12 @@ func Generate(w io.Writer, hallucinations []string, sourceFile string) error {
 								ID: "SLOP001",
 								ShortDescription: ShortDescription{
 									Text: "AI Hallucinated Package Detected",
+								},
+								FullDescription: ShortDescription{
+									Text: "A dependency was found that does not exist in the official registry and is likely an AI hallucination.",
+								},
+								Help: Help{
+									Markdown: "### Why this is a risk\nAI models frequently suggest non-existent packages. Attackers can register these names to perform supply chain attacks.\n\n### Recommendation\nVerify the package name and replace it with a reputable, existing alternative.",
 								},
 							},
 						},

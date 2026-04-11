@@ -72,8 +72,14 @@ func (s *ActionScanner) Scan(path string) ([]Dependency, error) {
 		data, _ := os.ReadFile(filepath.Join(workflowDir, file.Name()))
 		matches := re.FindAllStringSubmatch(string(data), -1)
 		for _, m := range matches {
-			if !strings.HasPrefix(m[1], "docker://") && !strings.HasPrefix(m[1], "./") {
-				deps = append(deps, Dependency{Name: m[1], Source: file.Name()})
+			name := m[1]
+			if !strings.HasPrefix(name, "docker://") && !strings.HasPrefix(name, "./") {
+				// For Actions, only verify the owner/repo part (first two segments)
+				parts := strings.Split(name, "/")
+				if len(parts) >= 2 {
+					name = parts[0] + "/" + parts[1]
+				}
+				deps = append(deps, Dependency{Name: name, Source: file.Name()})
 			}
 		}
 	}
