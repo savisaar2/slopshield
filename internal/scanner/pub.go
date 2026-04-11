@@ -10,9 +10,9 @@ import (
 type PubScanner struct{}
 
 type Pubspec struct {
-	Name         string            `yaml:"name"`
-	Dependencies map[string]string `yaml:"dependencies"`
-	DevDeps      map[string]string `yaml:"dev_dependencies"`
+	Name         string                 `yaml:"name"`
+	Dependencies map[string]interface{} `yaml:"dependencies"`
+	DevDeps      map[string]interface{} `yaml:"dev_dependencies"`
 }
 
 func (s *PubScanner) Scan(path string) ([]Dependency, error) {
@@ -28,10 +28,18 @@ func (s *PubScanner) Scan(path string) ([]Dependency, error) {
 	}
 
 	var deps []Dependency
-	for name, version := range pubspec.Dependencies {
+	for name, val := range pubspec.Dependencies {
+		version := ""
+		if v, ok := val.(string); ok {
+			version = v
+		}
 		deps = append(deps, Dependency{Name: name, Version: version, Source: "pubspec.yaml"})
 	}
-	for name, version := range pubspec.DevDeps {
+	for name, val := range pubspec.DevDeps {
+		version := ""
+		if v, ok := val.(string); ok {
+			version = v
+		}
 		deps = append(deps, Dependency{Name: name, Version: version, Source: "pubspec.yaml"})
 	}
 
