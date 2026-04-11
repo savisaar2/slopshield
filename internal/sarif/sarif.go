@@ -86,6 +86,7 @@ func Generate(w io.Writer, hallucinations []string, sourceFile string) error {
 									Text: "A dependency was found that does not exist in the official registry and is likely an AI hallucination.",
 								},
 								Help: Help{
+									Text:     "AI hallucinated packages are a security risk. Attackers can register these names to perform supply chain attacks.",
 									Markdown: "### Why this is a risk\nAI models frequently suggest non-existent packages. Attackers can register these names to perform supply chain attacks.\n\n### Recommendation\nVerify the package name and replace it with a reputable, existing alternative.",
 								},
 							},
