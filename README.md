@@ -50,6 +50,56 @@ Simply point SlopShield to any directory. It will automatically detect the manif
 
 ---
 
+## 🛡️ CI/CD Integration
+
+SlopShield is designed to be easily integrated into your existing CI/CD pipelines to prevent AI-hallucinated packages from being merged into your codebase.
+
+### GitHub Actions
+You can use SlopShield to scan your repository on every push or pull request. The following example shows how to run SlopShield and upload the results as a SARIF report to GitHub's Security Tab.
+
+```yaml
+name: SlopShield Security Scan
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install SlopShield
+        run: |
+          git clone https://github.com/savisaar2/slopshield.git
+          cd slopshield
+          go build -o ../slopshield cmd/slopshield/main.go
+
+      - name: Run SlopShield Scan
+        run: |
+          ./slopshield scan --format sarif --output results.sarif .
+
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
+
+### Other CI Environments
+For other CI systems (GitLab, Jenkins, etc.), you can run the scanner and check the exit code. SlopShield will exit with a non-zero code if hallucinations are detected.
+
+```bash
+# Example for a generic CI script
+go build -o slopshield cmd/slopshield/main.go
+./slopshield scan .
+```
+
+---
+
 ## 🎯 Maintainer Tools (Personal Intelligence)
 
 Keep your local registry fresh using the built-in AI harvester.

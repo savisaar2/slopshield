@@ -1,5 +1,1 @@
-{
-  "composer/main-frame-ebcdic-bridge": true,
-  "laravel/quantum-resistant-encryption": true,
-  "symfony/sap-blockchain-middleware": true
-}
+{}
