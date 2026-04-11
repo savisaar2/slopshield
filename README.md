@@ -1,45 +1,99 @@
 # SlopShield 🛡️
 
-AI Package Hallucination Scanner.
+**AI Package Hallucination Scanner.**
 
-SlopShield helps prevent supply chain attacks by identifying packages in your project that might be hallucinations from LLMs. It cross-references your dependencies against official registries (NPM) and known hallucination lists.
+SlopShield is a security tool designed to detect "AI hallucinations"—non-existent packages suggested by LLMs—that can lead to supply chain attacks. It cross-references your project's dependencies against official registries and a community-maintained hallucination database.
 
-## Features
+---
 
-- **NPM Support**: Scans `package.json` for non-existent dependencies.
-- **Aggregated Hallucination Lists**: Fetches known hallucinated names from multiple community-driven sources.
-- **GitHub Integration**: Generates SARIF reports for the GitHub Security tab.
-- **Ignore List**: Support for `.slopignore` to skip internal or private packages.
-- **CI/CD Ready**: Returns a non-zero exit code if hallucinations are found.
+## 🚀 Getting Started
 
-## Installation
-
+### Installation
+Ensure you have Go installed, then clone the repository:
 ```bash
-go install github.com/savisaar2/slopshield/cmd/slopshield@latest
+git clone https://github.com/YOUR_USERNAME/slopshield.git
+cd slopshield
+go build -o slopshield.exe cmd/slopshield/main.go
 ```
 
-## Usage
-
-### Scan a project
+### Basic Usage
+Scan your current project:
 ```bash
-slopshield scan .
+./slopshield.exe scan .
 ```
-
-### Generate SARIF for GitHub
+Scan a Flutter project:
 ```bash
-slopshield scan . --output sarif > results.sarif
+./slopshield.exe scan path/to/flutter_project
 ```
 
-### Ignore packages
-Create a `.slopignore` file:
-```text
-my-private-package
-test-hallucination-*
+---
+
+## 🔗 Connecting Your Own Registry (Decentralization)
+
+By default, SlopShield points to its own GitHub repository for hallucination data. You can "own" your registry by pointing it to your own fork or a different repository.
+
+### 1. Host Your Own Registry
+1.  Fork this repository or create a new one.
+2.  Ensure there is a `/registry` folder with `npm.json` and `pub.json`.
+3.  Set the `SLOPSHIELD_REGISTRY_URL` environment variable:
+    ```bash
+    # Windows (PowerShell)
+    $env:SLOPSHIELD_REGISTRY_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/registry"
+    
+    # Unix/Linux
+    export SLOPSHIELD_REGISTRY_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/registry"
+    ```
+
+### 2. Manual Sync
+Update your local cache from your remote registry at any time:
+```bash
+./slopshield.exe sync
 ```
 
-## How it works
+---
 
-1. **Extract**: Reads your `package.json`.
-2. **Aggregate**: Fetches known hallucinated packages from multiple LLM-tracking repositories.
-3. **Verify**: Checks the official registry (NPM) for any package that isn't on the known list.
-4. **Report**: Outputs findings to the terminal or a SARIF file.
+## 🎯 Maintaining the Registry (The Hunter-Gatherer Workflow)
+
+To keep your registry up-to-date, use the built-in "Bait and Catch" toolset.
+
+### Phase 1: The Prober (Harvesting Bait)
+The `slop-prober` uses an LLM (like OpenAI) to intentionally "bait" hallucinations by asking for niche code snippets.
+```bash
+$env:OPENAI_API_KEY="your_key"
+go run cmd/slop-prober/main.go
+```
+*Output: `express-gpt-parser, flutter-zeus-iot-sdk`*
+
+### Phase 2: The Hunter (Verifying & Merging)
+Use `slop-hunter` to verify those names against official registries. If it gets a **404**, it's a confirmed hallucination. The `--update` flag will automatically merge it into your local `registry/*.json` files.
+```bash
+go run cmd/slop-hunter/main.go --update npm "express-gpt-parser,flutter-zeus-iot-sdk"
+```
+
+### Phase 3: Committing
+Once your local registry files are updated, commit and push them to your repo:
+```bash
+git add registry/
+git commit -m "feat: discover 2 new hallucinations"
+git push
+```
+
+---
+
+## 🛠️ Features
+- **Multi-Ecosystem**: Supports Node.js (`package.json`) and Flutter (`pubspec.yaml`).
+- **Reputation-Aware**: Automatically flags packages less than 14 days old as "suspicious," even if they exist (to prevent attacker-registered hallucinations).
+- **Interactive Resolution**: Interactively ignore false positives or report confirmed findings.
+- **CI/CD Ready**: Generates **SARIF** reports for the GitHub Security tab.
+- **Decentralized**: Points to any GitHub URL or static file server for its intelligence.
+
+---
+
+## 🤝 Contributing
+Found a hallucination? 
+1.  Verify it with `slop-hunter`.
+2.  Open a Pull Request to the `/registry` folder.
+3.  Help protect the community!
+
+---
+*SlopShield is an open-source security research project. Always verify dependencies before use.*

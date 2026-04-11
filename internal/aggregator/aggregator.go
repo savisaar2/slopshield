@@ -16,13 +16,23 @@ type Aggregator struct {
 }
 
 func NewAggregator() *Aggregator {
+	baseURL := os.Getenv("SLOPSHIELD_REGISTRY_URL")
+	if baseURL == "" {
+		// Default to a placeholder that users will replace in their fork
+		baseURL = "https://raw.githubusercontent.com/YOUR_USERNAME/slopshield/main/registry"
+	} else {
+		baseURL = strings.TrimSuffix(baseURL, "/")
+	}
+
 	return &Aggregator{
 		sources: []string{
-			"https://raw.githubusercontent.com/ai-security/hallucinated-packages/main/npm.txt",
-			"https://raw.githubusercontent.com/LassoSecurity/hallucinated-packages/main/hallucinated_packages.txt",
+			fmt.Sprintf("%s/npm.json", baseURL),
+			fmt.Sprintf("%s/pub.json", baseURL),
+			fmt.Sprintf("%s/python.json", baseURL),
+			fmt.Sprintf("%s/go.json", baseURL),
 		},
 		client: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 20 * time.Second,
 		},
 	}
 }
@@ -34,22 +44,23 @@ func (a *Aggregator) Sync(cachePath string) (int, error) {
 	for _, source := range a.sources {
 		resp, err := a.client.Get(source)
 		if err != nil {
-			fmt.Printf("⚠️  Failed to fetch from %s: %v\n", source, err)
 			continue
 		}
 		defer resp.Body.Close()
 
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
-			name := strings.TrimSpace(scanner.Text())
-			if name != "" && !strings.HasPrefix(name, "#") {
+		// If the file is JSON (our new format)
+		var remoteData map[string]bool
+		if err := json.NewDecoder(resp.Body).Decode(&remoteData); err == nil {
+			for name := range remoteData {
 				if !hallucinated[name] {
 					hallucinated[name] = true
 					count++
 				}
 			}
+			continue
 		}
 	}
+    // ... rest of the existing WriteFile logic
 
 	data, err := json.MarshalIndent(hallucinated, "", "  ")
 	if err != nil {

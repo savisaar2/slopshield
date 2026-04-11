@@ -1,0 +1,5 @@
+{
+  "github.com/ibm/as400-reactive-bridge": true,
+  "github.com/medsync/go-ekg-stream": true,
+  "github.com/savisaar2/go-quantum-shield": true
+}

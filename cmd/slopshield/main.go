@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/savisaar2/slopshield/internal/aggregator"
 	"github.com/savisaar2/slopshield/internal/registry"
@@ -45,9 +46,25 @@ var (
 
 			// Load known hallucinations from cache
 			agg := aggregator.NewAggregator()
-			knownHallucinations, err := agg.LoadCache(".slop_cache")
+			cacheFile := ".slop_cache"
+
+			// Auto-sync if cache is older than 24 hours
+			if info, err := os.Stat(cacheFile); err == nil {
+				if time.Since(info.ModTime()) > 24*time.Hour {
+					if output == "text" {
+						fmt.Println("🔄 Local cache is outdated. Auto-syncing...")
+					}
+					_, _ = agg.Sync(cacheFile)
+				}
+			} else if os.IsNotExist(err) {
+				if output == "text" {
+					fmt.Println("🔄 No local cache found. Syncing for the first time...")
+				}
+				_, _ = agg.Sync(cacheFile)
+			}
+
+			knownHallucinations, err := agg.LoadCache(cacheFile)
 			if err != nil && output == "text" {
-				fmt.Println("⚠️  Warning: No local cache found. Run 'slopshield sync' for better detection.")
 				knownHallucinations = make(map[string]bool)
 			}
 
@@ -72,9 +89,23 @@ var (
 					filename string
 				}{&scanner.PubScanner{}, registry.NewPubRegistry(), "pubspec.yaml"})
 			}
+			if _, err := os.Stat(filepath.Join(path, "requirements.txt")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.PythonScanner{}, registry.NewPythonRegistry(), "requirements.txt"})
+			}
+			if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.GoScanner{}, registry.NewGoRegistry(), "go.mod"})
+			}
 
 			if len(scannerList) == 0 {
-				return fmt.Errorf("no supported manifest file (package.json, pubspec.yaml) found in %s", path)
+				return fmt.Errorf("no supported manifest file found in %s", path)
 			}
 
 			var allHallucinated []string
