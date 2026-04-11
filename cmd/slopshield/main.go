@@ -32,9 +32,10 @@ var (
 			Margin(1, 0)
 
 	rootCmd = &cobra.Command{
-		Use:   "slopshield",
-		Short: "SlopShield identifies hallucinated packages",
-		Long:  `SlopShield is a security scanner that detects AI-hallucinated packages.`,
+		Use:     "slopshield",
+		Version: "1.1.0",
+		Short:   "SlopShield identifies hallucinated packages",
+		Long:    `SlopShield is a security scanner that detects AI-hallucinated packages.`,
 	}
 
 	scanCmd = &cobra.Command{

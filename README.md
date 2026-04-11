@@ -1,4 +1,4 @@
-# SlopShield 🛡️ (v1.0.0)
+# SlopShield 🛡️ (v1.1.0)
 
 **The Universal AI Package Hallucination Scanner.**
 
