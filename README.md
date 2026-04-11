@@ -1,4 +1,10 @@
-# SlopShield 🛡️ [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/savisaar2/slopshield)](https://github.com/savisaar2/slopshield/tags)
+# SlopShield 🛡️ 
+
+[![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/savisaar2/slopshield)](https://github.com/savisaar2/slopshield/tags)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/savisaar2/slopshield/ci.yml?branch=main)](https://github.com/savisaar2/slopshield/actions)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/savisaar2/slopshield)](https://github.com/savisaar2/slopshield)
+[![License](https://img.shields.io/github/license/savisaar2/slopshield)](https://github.com/savisaar2/slopshield/blob/main/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/savisaar2/slopshield)](https://github.com/savisaar2/slopshield/issues)
 
 **The Universal AI Package Hallucination Scanner.**
 
