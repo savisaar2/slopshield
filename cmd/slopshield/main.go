@@ -42,9 +42,13 @@ var (
 				return fmt.Errorf("error loading ignore list: %w", err)
 			}
 
-			// Fetch known hallucinations
+			// Load known hallucinations from cache
 			agg := aggregator.NewAggregator()
-			knownHallucinations, _ := agg.FetchAll()
+			knownHallucinations, err := agg.LoadCache(".slop_cache")
+			if err != nil && output == "text" {
+				fmt.Println("⚠️  Warning: No local cache found. Run 'slopshield sync' for better detection.")
+				knownHallucinations = make(map[string]bool)
+			}
 
 			npmScanner := &scanner.NPMScanner{}
 			deps, err := npmScanner.Scan(path)
@@ -142,10 +146,26 @@ var (
 			return nil
 		},
 	}
+
+	syncCmd = &cobra.Command{
+		Use:   "sync",
+		Short: "Fetch and update the local hallucination registry",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("🔄 Syncing hallucination registries...")
+			agg := aggregator.NewAggregator()
+			count, err := agg.Sync(".slop_cache")
+			if err != nil {
+				return fmt.Errorf("sync failed: %w", err)
+			}
+			fmt.Printf("✅ Successfully synced %d known hallucinated packages to .slop_cache\n", count)
+			return nil
+		},
+	}
 )
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(syncCmd)
 	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif)")
 	scanCmd.Flags().BoolP("interactive", "i", false, "Enable interactive mode for manual intervention")
 }

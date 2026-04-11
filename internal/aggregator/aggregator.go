@@ -2,7 +2,10 @@ package aggregator
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -16,18 +19,22 @@ func NewAggregator() *Aggregator {
 	return &Aggregator{
 		sources: []string{
 			"https://raw.githubusercontent.com/ai-security/hallucinated-packages/main/npm.txt",
+			"https://raw.githubusercontent.com/LassoSecurity/hallucinated-packages/main/hallucinated_packages.txt",
 		},
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 15 * time.Second,
 		},
 	}
 }
 
-func (a *Aggregator) FetchAll() (map[string]bool, error) {
+func (a *Aggregator) Sync(cachePath string) (int, error) {
 	hallucinated := make(map[string]bool)
+	count := 0
+
 	for _, source := range a.sources {
 		resp, err := a.client.Get(source)
 		if err != nil {
+			fmt.Printf("⚠️  Failed to fetch from %s: %v\n", source, err)
 			continue
 		}
 		defer resp.Body.Close()
@@ -36,9 +43,36 @@ func (a *Aggregator) FetchAll() (map[string]bool, error) {
 		for scanner.Scan() {
 			name := strings.TrimSpace(scanner.Text())
 			if name != "" && !strings.HasPrefix(name, "#") {
-				hallucinated[name] = true
+				if !hallucinated[name] {
+					hallucinated[name] = true
+					count++
+				}
 			}
 		}
 	}
-	return hallucinated, nil
+
+	data, err := json.MarshalIndent(hallucinated, "", "  ")
+	if err != nil {
+		return 0, err
+	}
+
+	if err := os.WriteFile(cachePath, data, 0644); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (a *Aggregator) LoadCache(cachePath string) (map[string]bool, error) {
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var cache map[string]bool
+	if err := json.Unmarshal(data, &cache); err != nil {
+		return nil, err
+	}
+
+	return cache, nil
 }
