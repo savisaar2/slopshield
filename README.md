@@ -122,7 +122,7 @@ jobs:
 
       - name: Install SlopShield
         run: |
-          git clone https://github.com/savisaar2/slopshield.git
+          git clone https://github.com/<YOUR_USERNAME>/slopshield.git
           cd slopshield
           go build -o ../slopshield cmd/slopshield/main.go
 
