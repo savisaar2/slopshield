@@ -1,4 +1,4 @@
-# SlopShield 🛡️ (v1.1.0)
+# SlopShield 🛡️ [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/savisaar2/slopshield)](https://github.com/savisaar2/slopshield/tags)
 
 **The Universal AI Package Hallucination Scanner.**
 
