@@ -54,6 +54,13 @@ Simply point SlopShield to any directory. It will automatically detect the manif
 
 SlopShield is designed to be easily integrated into your existing CI/CD pipelines to prevent AI-hallucinated packages from being merged into your codebase.
 
+### How it Works in CI
+Even if your local `registry/*.json` files are empty, SlopShield will still protect you. It uses a **Tiered Verification** approach:
+1.  **Local Registry**: Fast-check against known "slops" you've already found.
+2.  **Official Registry (The Truth Check)**: If a package is not in your registry, SlopShield queries the official source (e.g., npmjs.org). If the package doesn't exist (404), it's flagged as a hallucination. It also flags packages less than 14 days old as suspicious.
+
+This means you get immediate protection out-of-the-box, while your personal registry grows more intelligent over time as you use the Prober.
+
 ### GitHub Actions
 You can use SlopShield to scan your repository on every push or pull request. The following example shows how to run SlopShield and upload the results as a SARIF report to GitHub's Security Tab.
 
