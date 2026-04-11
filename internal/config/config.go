@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	RegistryURL string `yaml:"registry_url"`
-	Providers   struct {
+	RegistryURL  string `yaml:"registry_url"`
+	RegistryPath string `yaml:"registry_path"` // Local directory for .json files
+	Providers    struct {
 		OpenAI    string `yaml:"openai_api_key"`
 		Anthropic string `yaml:"anthropic_api_key"`
 		Gemini    string `yaml:"gemini_api_key"`

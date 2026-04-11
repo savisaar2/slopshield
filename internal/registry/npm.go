@@ -8,7 +8,8 @@ import (
 )
 
 type NPMRegistry struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 type NPMMetadata struct {
@@ -20,11 +21,12 @@ func NewNPMRegistry() *NPMRegistry {
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		baseURL: "https://registry.npmjs.org",
 	}
 }
 
 func (r *NPMRegistry) Exists(name string) (bool, error) {
-	url := fmt.Sprintf("https://registry.npmjs.org/%s", name)
+	url := fmt.Sprintf("%s/%s", r.baseURL, name)
 	resp, err := r.client.Get(url)
 	if err != nil {
 		return false, err

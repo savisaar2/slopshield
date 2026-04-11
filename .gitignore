@@ -7,6 +7,7 @@ slop-prober
 # Config & Cache
 slopshield.yaml
 .slop_cache
+registry/local_*.json
 
 # OS files
 .DS_Store
