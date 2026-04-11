@@ -1,0 +1,5 @@
+{
+  "gem-medical-dicom-x": true,
+  "rails-biometric-auth": true,
+  "sidekiq-quantum-jobs": true
+}

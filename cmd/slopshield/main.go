@@ -12,14 +12,28 @@ import (
 	"github.com/savisaar2/slopshield/internal/scanner"
 	"github.com/savisaar2/slopshield/internal/slopignore"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
 var (
+	styleTitle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF00")).
+			Bold(true).
+			Border(lipgloss.RoundedBorder()).
+			Padding(1, 2).
+			MarginLeft(1).
+			BorderForeground(lipgloss.Color("#00AA00"))
+
+	styleHeader = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#4ECDC4")).
+			Bold(true).
+			Margin(1, 0)
+
 	rootCmd = &cobra.Command{
 		Use:   "slopshield",
-		Short: "SlopShield identifies hallucinated packages in your project",
-		Long:  `SlopShield is a security scanner that detects AI-hallucinated packages by verifying them against official registries and known hallucination lists.`,
+		Short: "SlopShield identifies hallucinated packages",
+		Long:  `SlopShield is a security scanner that detects AI-hallucinated packages.`,
 	}
 
 	scanCmd = &cobra.Command{
@@ -36,7 +50,8 @@ var (
 			interactive, _ := cmd.Flags().GetBool("interactive")
 
 			if output == "text" {
-				fmt.Printf("🔍 Scanning project at: %s\n", path)
+				fmt.Println(styleTitle.Render("🛡️  SLOPSHIELD: AI Hallucination Guard"))
+				fmt.Printf("🔍 Auto-detecting project type at: %s\n", path)
 			}
 
 			ignoreList, err := slopignore.Load(path)
@@ -47,6 +62,7 @@ var (
 			// Load known hallucinations from cache
 			agg := aggregator.NewAggregator()
 			cacheFile := ".slop_cache"
+			// ... (rest of sync logic stays same)
 
 			// Auto-sync if cache is older than 24 hours
 			if info, err := os.Stat(cacheFile); err == nil {
@@ -102,6 +118,34 @@ var (
 					registry registry.Registry
 					filename string
 				}{&scanner.GoScanner{}, registry.NewGoRegistry(), "go.mod"})
+			}
+			if _, err := os.Stat(filepath.Join(path, "Cargo.toml")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.RustScanner{}, registry.NewRustRegistry(), "Cargo.toml"})
+			}
+			if _, err := os.Stat(filepath.Join(path, "composer.json")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.PHPScanner{}, registry.NewPHPRegistry(), "composer.json"})
+			}
+			if _, err := os.Stat(filepath.Join(path, "Gemfile")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.RubyScanner{}, registry.NewRubyRegistry(), "Gemfile"})
+			}
+			if _, err := os.Stat(filepath.Join(path, ".github", "workflows")); err == nil {
+				scannerList = append(scannerList, struct {
+					scanner  scanner.Scanner
+					registry registry.Registry
+					filename string
+				}{&scanner.ActionScanner{}, registry.NewGitHubRegistry(), "GitHub Actions"})
 			}
 
 			if len(scannerList) == 0 {

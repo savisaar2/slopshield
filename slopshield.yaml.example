@@ -1,0 +1,14 @@
+# SlopShield Configuration
+# Set your API keys here to use the multi-engine prober.
+
+registry_url: "https://raw.githubusercontent.com/YOUR_USERNAME/slopshield/main/registry"
+
+providers:
+  openai_api_key: ""
+  anthropic_api_key: ""
+  gemini_api_key: ""
+  
+  ollama:
+    enabled: true
+    url: "http://localhost:11434/api/generate"
+    model: "llama3"

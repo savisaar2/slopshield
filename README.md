@@ -28,53 +28,45 @@ Scan a Flutter project:
 
 ---
 
-## 🔗 Connecting Your Own Registry (Decentralization)
+## ⚙️ Configuration
 
-By default, SlopShield points to its own GitHub repository for hallucination data. You can "own" your registry by pointing it to your own fork or a different repository.
+SlopShield uses a `slopshield.yaml` file for advanced configuration, such as custom registry URLs and AI provider API keys.
 
-### 1. Host Your Own Registry
-1.  Fork this repository or create a new one.
-2.  Ensure there is a `/registry` folder with `npm.json` and `pub.json`.
-3.  Set the `SLOPSHIELD_REGISTRY_URL` environment variable:
+1.  Copy the example config:
     ```bash
-    # Windows (PowerShell)
-    $env:SLOPSHIELD_REGISTRY_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/registry"
-    
-    # Unix/Linux
-    export SLOPSHIELD_REGISTRY_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/registry"
+    cp slopshield.yaml.example slopshield.yaml
     ```
-
-### 2. Manual Sync
-Update your local cache from your remote registry at any time:
-```bash
-./slopshield.exe sync
-```
+2.  Edit `slopshield.yaml` and add your API keys for OpenAI, Anthropic, or Gemini.
 
 ---
 
-## 🎯 Maintaining the Registry (The Hunter-Gatherer Workflow)
+## 🚀 Usage
 
-To keep your registry up-to-date, use the built-in "Bait and Catch" toolset.
-
-### Phase 1: The Prober (Harvesting Bait)
-The `slop-prober` uses an LLM (like OpenAI) to intentionally "bait" hallucinations by asking for niche code snippets.
+### Automatic Project Scan
+SlopShield automatically detects the project type (Node.js, Flutter, Python, Go) in the target directory.
 ```bash
-$env:OPENAI_API_KEY="your_key"
-go run cmd/slop-prober/main.go
-```
-*Output: `express-gpt-parser, flutter-zeus-iot-sdk`*
-
-### Phase 2: The Hunter (Verifying & Merging)
-Use `slop-hunter` to verify those names against official registries. If it gets a **404**, it's a confirmed hallucination. The `--update` flag will automatically merge it into your local `registry/*.json` files.
-```bash
-go run cmd/slop-hunter/main.go --update npm "express-gpt-parser,flutter-zeus-iot-sdk"
+./slopshield.exe scan .
 ```
 
-### Phase 3: Committing
+### Multi-Engine Hallucination Probing
+To update your registry using all configured AI providers simultaneously:
+```bash
+./slop-prober.exe --ecosystem npm
+```
+*Note: This command requires at least one API key or a local Ollama instance configured in `slopshield.yaml`.*
+
+*The prober will:*
+1.  **Detect** available API keys.
+2.  **Probe** OpenAI, Anthropic, Gemini, and Ollama in parallel.
+3.  **Extract** potential package names.
+4.  **Verify** each name against the official registry.
+5.  **Merge** new findings into `registry/*.json`.
+
+### 3. Commit and Push
 Once your local registry files are updated, commit and push them to your repo:
 ```bash
 git add registry/
-git commit -m "feat: discover 2 new hallucinations"
+git commit -m "feat: discover new hallucinations across multiple AI engines"
 git push
 ```
 

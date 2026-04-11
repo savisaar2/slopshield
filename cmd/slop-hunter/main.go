@@ -40,6 +40,18 @@ func main() {
 	} else if ecosystem == "go" {
 		reg = registry.NewGoRegistry()
 		registryFile = "registry/go.json"
+	} else if ecosystem == "rust" {
+		reg = registry.NewRustRegistry()
+		registryFile = "registry/rust.json"
+	} else if ecosystem == "php" {
+		reg = registry.NewPHPRegistry()
+		registryFile = "registry/php.json"
+	} else if ecosystem == "ruby" {
+		reg = registry.NewRubyRegistry()
+		registryFile = "registry/ruby.json"
+	} else if ecosystem == "actions" {
+		reg = registry.NewGitHubRegistry()
+		registryFile = "registry/actions.json"
 	} else {
 		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}

@@ -1,0 +1,5 @@
+{
+  "diesel-timescale-adapter": true,
+  "serde-quantum": true,
+  "tokio-reactive-bridge": true
+}

@@ -1,7 +1,6 @@
 package aggregator
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -30,6 +29,10 @@ func NewAggregator() *Aggregator {
 			fmt.Sprintf("%s/pub.json", baseURL),
 			fmt.Sprintf("%s/python.json", baseURL),
 			fmt.Sprintf("%s/go.json", baseURL),
+			fmt.Sprintf("%s/rust.json", baseURL),
+			fmt.Sprintf("%s/php.json", baseURL),
+			fmt.Sprintf("%s/ruby.json", baseURL),
+			fmt.Sprintf("%s/actions.json", baseURL),
 		},
 		client: &http.Client{
 			Timeout: 20 * time.Second,
