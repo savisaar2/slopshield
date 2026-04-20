@@ -105,15 +105,20 @@ func main() {
 		reg = registry.NewPHPRegistry()
 		registryFile = "registry/php.json"
 	case "ruby":
-		reg = registry.NewRubyRegistry()
-		registryFile = "registry/ruby.json"
+	        reg = registry.NewRubyRegistry()
+	        registryFile = "registry/ruby.json"
 	case "actions":
-		reg = registry.NewGitHubRegistry()
-		registryFile = "registry/actions.json"
+	        reg = registry.NewGitHubRegistry()
+	        registryFile = "registry/actions.json"
+	case "maven":
+	        reg = registry.NewMavenRegistry()
+	        registryFile = "registry/maven.json"
+	case "nuget":
+	        reg = registry.NewNuGetRegistry()
+	        registryFile = "registry/nuget.json"
 	default:
-		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
+	        log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
-
 	topics := []string{
 		"obscure quantum-resistant cryptographic layer",
 		"proprietary SAP-to-blockchain middleware",

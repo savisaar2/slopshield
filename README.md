@@ -8,7 +8,7 @@
 
 **The Universal AI Package Hallucination Scanner.**
 
-SlopShield is a local-first security tool designed to protect developers from "AI Hallucinations"—non-existent or malicious packages suggested by LLMs. By connecting SlopShield to your own LLM providers (OpenAI, Anthropic, Gemini, or Ollama), you can harvest, verify, and maintain your own private database of hallucinated packages.
+SlopShield is a local-first security tool designed to protect developers from "AI Hallucinations"—non-existent or malicious packages suggested by Large Language Models (LLMs). By connecting SlopShield to your own LLM providers (OpenAI, Anthropic, Gemini, or Ollama), you can harvest, verify, and maintain your own private database of hallucinated packages.
 
 ---
 
@@ -16,106 +16,89 @@ SlopShield is a local-first security tool designed to protect developers from "A
 
 - **Multi-Ecosystem Support**: Auto-detects and scans Node.js, Flutter, Python, Go, Rust, PHP, Ruby, Java, C#, and GitHub Actions.
 - **Multi-Engine Prober**: Automatically harvests new hallucinations across OpenAI, Anthropic, Gemini, and Ollama simultaneously to build your personal registry.
-- **Reputation Analysis**: Flags suspiciously new packages (less than 14 days old) even if they exist in the registry.
+- **Reputation Analysis**: Flags suspiciously new packages (less than 14 days old) even if they exist in the registry (available for npm, pypi, crates.io).
 - **SARIF Integration**: Generates industry-standard reports for GitHub Security Tab and CI/CD pipelines.
-- **Interactive TUI**: A beautiful terminal interface for manual intervention and ignore-list management.
 - **Local Intelligence**: Your hallucination database stays on your machine, updated by your own AI probing.
 
 ---
 
-## 🛠️ Installation & Setup
+## 🛠️ Quick Start
 
-To maintain your own private hallucination registry while staying updated with the core tool, it is recommended to **fork** this repository.
+### One-Liner Install (Go 1.21+)
 
-1.  **Fork the repo** on GitHub.
-2.  **Clone your fork**:
+Install all SlopShield tools directly:
+```bash
+go install github.com/savisaar2/slopshield/cmd/...@latest
+```
+*Ensure your `$GOPATH/bin` (usually `~/go/bin`) is in your PATH.*
+
+### Manual Installation
+
+1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/<YOUR_USERNAME>/slopshield.git
+    git clone https://github.com/savisaar2/slopshield.git
     cd slopshield
     ```
-3.  **Build the tools**:
+2.  **Build the binaries**:
     ```bash
-    go build -o slopshield.exe cmd/slopshield/main.go
-    go build -o slop-prober.exe cmd/slop-prober/main.go
+    go build -o slopshield cmd/slopshield/main.go
+    go build -o slop-prober cmd/slop-prober/main.go
+    go build -o slop-hunter cmd/slop-hunter/main.go
     ```
-
----
-
-## 🐳 Docker Support
-
-If you don't want to install the Go toolchain locally, you can use SlopShield via Docker.
-
-### 1. Build the Image
-```bash
-docker build -t slopshield .
-```
-
-### 2. Run a Scan
-To scan a local project directory, mount it into the container's `/scan` directory:
-```bash
-# On Linux/macOS
-docker run --rm -v $(pwd):/scan slopshield scan /scan
-
-# On Windows (PowerShell)
-docker run --rm -v ${PWD}:/scan slopshield scan /scan
-```
-
-### 3. Persist Your Personal Registry
-If you want to keep your aggregated findings between container runs, mount your local `registry` folder as well:
-```bash
-docker run --rm \
-  -v $(pwd):/scan \
-  -v $(pwd)/registry:/app/registry \
-  slopshield scan /scan
-```
-
-### 4. Run the Prober or Hunter
-You can run the other maintenance tools by overriding the entrypoint:
-```bash
-# Run the prober
-docker run --rm --entrypoint /app/slop-prober slopshield --ecosystem npm
-
-# Run the hunter
-docker run --rm --entrypoint /app/slop-hunter slopshield --update npm "fake-pkg-1,fake-pkg-2"
-```
-
----
-
-## ⚙️ Configuration
-
-SlopShield uses `slopshield.yaml` for API keys and local settings.
-
-1.  **Initialize Config**:
-    ```bash
-    cp slopshield.yaml.example slopshield.yaml
-    ```
-2.  **Add API Keys**: Edit `slopshield.yaml` to include keys for OpenAI, Anthropic, or Gemini to enable your personal Prober.
 
 ---
 
 ## 🔍 Usage
 
-### Scan a Project
-Simply point SlopShield to any directory. It will automatically detect the manifest files and check them against your local registry and the official ecosystem registries.
+### 1. Scan a Project
+Point SlopShield to any directory. It will automatically detect manifest files (e.g., `package.json`, `requirements.txt`, `go.mod`, `pom.xml`, etc.) and check them against your local registry and official sources.
 ```bash
-./slopshield.exe scan .
+slopshield scan .
 ```
+
+### 2. Configure AI Providers
+To use the Prober (automatic discovery), initialize the configuration:
+```bash
+cp slopshield.yaml.example slopshield.yaml
+```
+Edit `slopshield.yaml` to include your API keys for OpenAI, Anthropic, or Gemini.
+
+### 3. Harvest Hallucinations (The Prober)
+Connect to your AI providers to discover niche hallucinations. SlopShield will verify them and save them to your local `registry/` folder.
+```bash
+slop-prober --ecosystem npm
+```
+
+### 4. Manual Verification (The Hunter)
+If you find a specific potential hallucination, verify and merge it manually:
+```bash
+slop-hunter --update npm "fake-package-1,another-slop-pkg"
+```
+
+---
+
+## 📦 Supported Manifests
+
+| Ecosystem | Manifest File | Registry Source |
+| :--- | :--- | :--- |
+| **Node.js** | `package.json` | npmjs.org |
+| **Python** | `requirements.txt` | pypi.org |
+| **Go** | `go.mod` | proxy.golang.org |
+| **Rust** | `Cargo.toml` | crates.io |
+| **Java / Maven** | `pom.xml` | maven.org |
+| **C# / .NET** | `.csproj` | nuget.org |
+| **Flutter/Dart** | `pubspec.yaml` | pub.dev |
+| **PHP** | `composer.json` | packagist.org |
+| **Ruby** | `Gemfile` | rubygems.org |
+| **GitHub Actions**| `.github/workflows/*.yml` | github.com |
 
 ---
 
 ## 🛡️ CI/CD Integration
 
-SlopShield is designed to be easily integrated into your existing CI/CD pipelines to prevent AI-hallucinated packages from being merged into your codebase.
+SlopShield is designed to be integrated into CI/CD pipelines to prevent AI-hallucinated packages from being merged.
 
-### How it Works in CI
-Even if your local `registry/*.json` files are empty, SlopShield will still protect you. It uses a **Tiered Verification** approach:
-1.  **Local Registry**: Fast-check against known "slops" you've already found.
-2.  **Official Registry (The Truth Check)**: If a package is not in your registry, SlopShield queries the official source (e.g., npmjs.org). If the package doesn't exist (404), it's flagged as a hallucination. It also flags packages less than 14 days old as suspicious.
-
-This means you get immediate protection out-of-the-box, while your personal registry grows more intelligent over time as you use the Prober.
-
-### GitHub Actions
-You can use SlopShield to scan your repository on every push or pull request. The following example shows how to run SlopShield and upload the results as a SARIF report to GitHub's Security Tab.
+### GitHub Actions Example
 
 ```yaml
 name: SlopShield Security Scan
@@ -128,20 +111,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
       - name: Install SlopShield
-        run: |
-          git clone https://github.com/<YOUR_USERNAME>/slopshield.git
-          cd slopshield
-          go build -o ../slopshield cmd/slopshield/main.go
+        run: go install github.com/savisaar2/slopshield/cmd/slopshield@latest
 
-      - name: Run SlopShield Scan
-        run: |
-          ./slopshield scan --format sarif --output results.sarif .
+      - name: Run Scan
+        run: slopshield scan --format sarif --output results.sarif .
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
@@ -149,63 +123,24 @@ jobs:
           sarif_file: results.sarif
 ```
 
-### Other CI Environments
-For other CI systems (GitLab, Jenkins, etc.), you can run the scanner and check the exit code. SlopShield will exit with a non-zero code if hallucinations are detected.
+---
 
+## 🐳 Docker Support
+
+Run SlopShield without installing Go:
 ```bash
-# Example for a generic CI script
-go build -o slopshield cmd/slopshield/main.go
-./slopshield scan .
+docker build -t slopshield .
+docker run --rm -v $(pwd):/scan slopshield scan /scan
 ```
 
 ---
 
-## 🎯 Maintainer Tools (Personal Intelligence)
+## 🧠 How it Works: Tiered Verification
 
-Keep your local registry fresh using the built-in AI harvester.
-
-### The Prober (Automatic Discovery & Verification)
-Connect to your AI providers to solve niche tasks. SlopShield will extract the non-existent packages they suggest, verify them, and save them to your local `registry/` folder automatically.
-```bash
-# Run for a specific ecosystem
-./slop-prober.exe --ecosystem npm
-```
-
-### The Hunter (Manual Entry)
-If you find a specific hallucination, verify and merge it manually:
-```bash
-go run cmd/slop-hunter/main.go --update npm "obscure-pkg-1,non-existent-pkg-2"
-```
-
----
-
-## 📦 Supported Manifests
-
-| Ecosystem | Manifest File | Registry |
-| :--- | :--- | :--- |
-| **Node.js** | `package.json` | npmjs.org |
-| **Flutter/Dart** | `pubspec.yaml` | pub.dev |
-| **Python** | `requirements.txt` | pypi.org |
-| **Go** | `go.mod` | proxy.golang.org |
-| **Rust** | `Cargo.toml` | crates.io |
-| **PHP** | `composer.json` | packagist.org |
-| **Ruby** | `Gemfile` | rubygems.org |
-| **C# / .NET** | `.csproj` | nuget.org |
-| **Java / Maven** | `pom.xml` | maven.org |
-| **GitHub Actions**| `.github/workflows/*.yml` | github.com |
-
----
-
-## 🧠 How it Works: The Operational Flow
-
-1.  **Auto-Discovery**: The scanner identifies project manifests (e.g., `Cargo.toml`).
-2.  **Local Intelligence**: It loads your `registry/*.json` files—packages you've previously identified as slops using the Prober.
-3.  **Dependency Extraction**: Specific ecosystem parsers extract all dependencies.
-4.  **The Filter**:
-    -   **Tier 1**: Checks your `.slopignore`.
-    -   **Tier 2**: Checks your local personal registry.
-    -   **Tier 3 (The Truth Check)**: Asks the official registry. If 404, it's a slop. If < 14 days old, it's suspicious.
-5.  **Report**: Beautiful UI or SARIF export.
+SlopShield uses a **three-tier check** for every dependency:
+1.  **Local Registry**: Fast-check against known "slops" you've previously identified.
+2.  **Official Registry (The Truth Check)**: Queries the official source (e.g., npmjs.org). If it returns a 404, it's flagged.
+3.  **Reputation Check**: Even if it exists, if the package was created less than 14 days ago, it is flagged as suspicious.
 
 ---
 

@@ -47,15 +47,20 @@ func main() {
 		reg = registry.NewPHPRegistry()
 		registryFile = "registry/php.json"
 	} else if ecosystem == "ruby" {
-		reg = registry.NewRubyRegistry()
-		registryFile = "registry/ruby.json"
+	        reg = registry.NewRubyRegistry()
+	        registryFile = "registry/ruby.json"
 	} else if ecosystem == "actions" {
-		reg = registry.NewGitHubRegistry()
-		registryFile = "registry/actions.json"
+	        reg = registry.NewGitHubRegistry()
+	        registryFile = "registry/actions.json"
+	} else if ecosystem == "maven" {
+	        reg = registry.NewMavenRegistry()
+	        registryFile = "registry/maven.json"
+	} else if ecosystem == "nuget" {
+	        reg = registry.NewNuGetRegistry()
+	        registryFile = "registry/nuget.json"
 	} else {
-		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
+	        log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
-
 	hallucinations := make(map[string]bool)
 	fmt.Printf("🎯 Hunting for hallucinations in %s...\n", ecosystem)
 

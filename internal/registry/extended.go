@@ -15,7 +15,20 @@ func (r *RustRegistry) Exists(name string) (bool, error) {
 	resp, err := r.client.Get(fmt.Sprintf("https://crates.io/api/v1/crates/%s", name))
 	if err != nil { return false, err }
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	if resp.StatusCode != http.StatusOK { return false, nil }
+
+	var meta struct {
+		Crate struct {
+			CreatedAt string `json:"created_at"`
+		} `json:"crate"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&meta); err == nil {
+		t, _ := time.Parse(time.RFC3339, meta.Crate.CreatedAt)
+		if !t.IsZero() && time.Since(t) < 14*24*time.Hour {
+			return false, nil // Suspiciously new
+		}
+	}
+	return true, nil
 }
 
 // PHP

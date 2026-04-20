@@ -133,13 +133,28 @@ var (
 				}{&scanner.RubyScanner{}, registry.NewRubyRegistry(), "Gemfile"})
 			}
 			if _, err := os.Stat(filepath.Join(path, ".github", "workflows")); err == nil {
-				scannerList = append(scannerList, struct {
-					scanner  scanner.Scanner
-					registry registry.Registry
-					filename string
-				}{&scanner.ActionScanner{}, registry.NewGitHubRegistry(), "GitHub Actions"})
+			        scannerList = append(scannerList, struct {
+			                scanner  scanner.Scanner
+			                registry registry.Registry
+			                filename string
+			        }{&scanner.ActionScanner{}, registry.NewGitHubRegistry(), "GitHub Actions"})
 			}
-
+			if _, err := os.Stat(filepath.Join(path, "pom.xml")); err == nil {
+			        scannerList = append(scannerList, struct {
+			                scanner  scanner.Scanner
+			                registry registry.Registry
+			                filename string
+			        }{&scanner.JavaScanner{}, registry.NewMavenRegistry(), "pom.xml"})
+			}
+			// Check for any .csproj file
+			csprojFiles, _ := filepath.Glob(filepath.Join(path, "*.csproj"))
+			if len(csprojFiles) > 0 {
+			        scannerList = append(scannerList, struct {
+			                scanner  scanner.Scanner
+			                registry registry.Registry
+			                filename string
+			        }{&scanner.CSharpScanner{}, registry.NewNuGetRegistry(), ".csproj"})
+			}
 			if len(scannerList) == 0 {
 				return fmt.Errorf("no supported manifest file found in %s", path)
 			}
