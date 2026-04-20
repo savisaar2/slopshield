@@ -57,11 +57,20 @@ slopshield scan .
 ```
 
 ### 2. Configure AI Providers
-To use the Prober (automatic discovery), initialize the configuration:
+To use the Prober (automatic discovery), you can use environment variables (recommended for CI/CD) or a configuration file.
+
+#### Option A: Environment Variables (Recommended)
+```bash
+export OPENAI_API_KEY="your-key"
+export ANTHROPIC_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+```
+
+#### Option B: Configuration File
 ```bash
 cp slopshield.yaml.example slopshield.yaml
 ```
-Edit `slopshield.yaml` to include your API keys for OpenAI, Anthropic, or Gemini.
+Edit `slopshield.yaml` to include your API keys. This file is automatically ignored by git.
 
 ### 3. Harvest Hallucinations (The Prober)
 Connect to your AI providers to discover niche hallucinations. SlopShield will verify them and save them to your local `registry/` folder.

@@ -1,8 +1,8 @@
 # Binaries
 *.exe
-slopshield
-slop-hunter
-slop-prober
+/slopshield
+/slop-hunter
+/slop-prober
 
 # Config & Cache
 slopshield.yaml

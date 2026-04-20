@@ -1,0 +1,10 @@
+.git
+.github
+slopshield.yaml
+.slop_cache
+registry/local_*.json
+*.exe
+slopshield
+slop-hunter
+slop-prober
+vendor/
