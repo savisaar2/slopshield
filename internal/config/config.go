@@ -7,9 +7,12 @@ import (
 )
 
 type Config struct {
-	RegistryURL  string `yaml:"registry_url"`
-	RegistryPath string `yaml:"registry_path"` // Local directory for .json files
-	Providers    struct {
+	RegistryURL         string            `yaml:"registry_url"`
+	RegistryPath        string            `yaml:"registry_path"` // Local directory for .json files
+	ReputationAgeDays   int               `yaml:"reputation_age_days"`
+	EnableTyposquatting bool              `yaml:"enable_typosquatting"`
+	PrivateRegistries   map[string]string `yaml:"private_registries"`
+	Providers           struct {
 		OpenAI    string `yaml:"openai_api_key"`
 		Anthropic string `yaml:"anthropic_api_key"`
 		Gemini    string `yaml:"gemini_api_key"`
@@ -23,6 +26,11 @@ type Config struct {
 
 func Load() (*Config, error) {
 	var cfg Config
+	// Defaults
+	cfg.ReputationAgeDays = 14
+	cfg.EnableTyposquatting = true
+	cfg.PrivateRegistries = make(map[string]string)
+
 	data, err := os.ReadFile("slopshield.yaml")
 	if err == nil {
 		if err := yaml.Unmarshal(data, &cfg); err != nil {

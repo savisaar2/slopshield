@@ -3,35 +3,39 @@ package registry
 import (
 	"fmt"
 	"net/http"
-	"time"
+
+	"github.com/savisaar2/slopshield/internal/resilienthttp"
 )
 
 type GoRegistry struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
-func NewGoRegistry() *GoRegistry {
+func NewGoRegistry(baseURL string) *GoRegistry {
+	if baseURL == "" {
+		baseURL = "https://proxy.golang.org"
+	}
 	return &GoRegistry{
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		client:  resilienthttp.NewClient(),
+		baseURL: baseURL,
 	}
 }
 
-func (r *GoRegistry) Exists(name string) (bool, error) {
+func (r *GoRegistry) GetMetadata(name string) (*Metadata, error) {
 	// Go modules use the proxy.golang.org to verify existence
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/list", name)
+	url := fmt.Sprintf("%s/%s/@v/list", r.baseURL, name)
 	resp, err := r.client.Get(url)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		return true, nil
+		return &Metadata{Exists: true}, nil
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
+		return &Metadata{Exists: false}, nil
 	}
-	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }

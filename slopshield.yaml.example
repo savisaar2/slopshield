@@ -3,6 +3,16 @@
 
 registry_url: "https://raw.githubusercontent.com/YOUR_USERNAME/slopshield/main/registry"
 
+# Detection settings
+reputation_age_days: 14
+enable_typosquatting: true
+
+# Custom registry URLs for private packages
+private_registries:
+  npm: "https://registry.npmjs.org"
+  python: "https://pypi.org/pypi"
+  go: "https://proxy.golang.org"
+
 providers:
   openai_api_key: ""
   anthropic_api_key: ""

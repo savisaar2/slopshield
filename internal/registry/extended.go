@@ -6,84 +6,156 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/savisaar2/slopshield/internal/resilienthttp"
 )
 
 // Rust
-type RustRegistry struct{ client *http.Client }
-func NewRustRegistry() *RustRegistry { return &RustRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *RustRegistry) Exists(name string) (bool, error) {
-	resp, err := r.client.Get(fmt.Sprintf("https://crates.io/api/v1/crates/%s", name))
-	if err != nil { return false, err }
+type RustRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewRustRegistry(baseURL string) *RustRegistry {
+	if baseURL == "" {
+		baseURL = "https://crates.io/api/v1/crates"
+	}
+	return &RustRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *RustRegistry) GetMetadata(name string) (*Metadata, error) {
+	resp, err := r.client.Get(fmt.Sprintf("%s/%s", r.baseURL, name))
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK { return false, nil }
+	if resp.StatusCode != http.StatusOK {
+		return &Metadata{Exists: false}, nil
+	}
 
 	var meta struct {
 		Crate struct {
 			CreatedAt string `json:"created_at"`
 		} `json:"crate"`
 	}
+	var createdAt time.Time
 	if err := json.NewDecoder(resp.Body).Decode(&meta); err == nil {
-		t, _ := time.Parse(time.RFC3339, meta.Crate.CreatedAt)
-		if !t.IsZero() && time.Since(t) < 14*24*time.Hour {
-			return false, nil // Suspiciously new
-		}
+		createdAt, _ = time.Parse(time.RFC3339, meta.Crate.CreatedAt)
 	}
-	return true, nil
+	return &Metadata{Exists: true, CreatedAt: createdAt}, nil
 }
 
 // PHP
-type PHPRegistry struct{ client *http.Client }
-func NewPHPRegistry() *PHPRegistry { return &PHPRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *PHPRegistry) Exists(name string) (bool, error) {
+type PHPRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewPHPRegistry(baseURL string) *PHPRegistry {
+	if baseURL == "" {
+		baseURL = "https://packagist.org/packages"
+	}
+	return &PHPRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *PHPRegistry) GetMetadata(name string) (*Metadata, error) {
 	// Packagist requires vendor/package format. If not provided, it's definitely a slop
-	if !strings.Contains(name, "/") { return false, nil }
-	resp, err := r.client.Get(fmt.Sprintf("https://packagist.org/packages/%s.json", name))
-	if err != nil { return false, err }
+	if !strings.Contains(name, "/") {
+		return &Metadata{Exists: false}, nil
+	}
+	resp, err := r.client.Get(fmt.Sprintf("%s/%s.json", r.baseURL, name))
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	return &Metadata{Exists: resp.StatusCode == http.StatusOK}, nil
 }
 
 // Ruby
-type RubyRegistry struct{ client *http.Client }
-func NewRubyRegistry() *RubyRegistry { return &RubyRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *RubyRegistry) Exists(name string) (bool, error) {
-	resp, err := r.client.Get(fmt.Sprintf("https://rubygems.org/api/v1/gems/%s.json", name))
-	if err != nil { return false, err }
+type RubyRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewRubyRegistry(baseURL string) *RubyRegistry {
+	if baseURL == "" {
+		baseURL = "https://rubygems.org/api/v1/gems"
+	}
+	return &RubyRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *RubyRegistry) GetMetadata(name string) (*Metadata, error) {
+	resp, err := r.client.Get(fmt.Sprintf("%s/%s.json", r.baseURL, name))
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	return &Metadata{Exists: resp.StatusCode == http.StatusOK}, nil
 }
 
 // NuGet (C#)
-type NuGetRegistry struct{ client *http.Client }
-func NewNuGetRegistry() *NuGetRegistry { return &NuGetRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *NuGetRegistry) Exists(name string) (bool, error) {
-	resp, err := r.client.Get(fmt.Sprintf("https://api.nuget.org/v3-flatcontainer/%s/index.json", name))
-	if err != nil { return false, err }
+type NuGetRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewNuGetRegistry(baseURL string) *NuGetRegistry {
+	if baseURL == "" {
+		baseURL = "https://api.nuget.org/v3-flatcontainer"
+	}
+	return &NuGetRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *NuGetRegistry) GetMetadata(name string) (*Metadata, error) {
+	resp, err := r.client.Get(fmt.Sprintf("%s/%s/index.json", r.baseURL, name))
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	return &Metadata{Exists: resp.StatusCode == http.StatusOK}, nil
 }
 
 // Maven (Java)
-type MavenRegistry struct{ client *http.Client }
-func NewMavenRegistry() *MavenRegistry { return &MavenRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *MavenRegistry) Exists(name string) (bool, error) {
+type MavenRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewMavenRegistry(baseURL string) *MavenRegistry {
+	if baseURL == "" {
+		baseURL = "https://search.maven.org/solrsearch/select"
+	}
+	return &MavenRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *MavenRegistry) GetMetadata(name string) (*Metadata, error) {
 	// Maven search API
-	url := fmt.Sprintf("https://search.maven.org/solrsearch/select?q=a:%s&rows=1&wt=json", name)
+	url := fmt.Sprintf("%s?q=a:%s&rows=1&wt=json", r.baseURL, name)
 	resp, err := r.client.Get(url)
-	if err != nil { return false, err }
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	var res struct { Response struct { NumFound int `json:"numFound"` } `json:"response"` }
+	var res struct {
+		Response struct{ NumFound int `json:"numFound"` } `json:"response"`
+	}
 	json.NewDecoder(resp.Body).Decode(&res)
-	return res.Response.NumFound > 0, nil
+	return &Metadata{Exists: res.Response.NumFound > 0}, nil
 }
 
 // GitHub Actions
-type GitHubRegistry struct{ client *http.Client }
-func NewGitHubRegistry() *GitHubRegistry { return &GitHubRegistry{client: &http.Client{Timeout: 10 * time.Second}} }
-func (r *GitHubRegistry) Exists(name string) (bool, error) {
+type GitHubRegistry struct {
+	client  *http.Client
+	baseURL string
+}
+
+func NewGitHubRegistry(baseURL string) *GitHubRegistry {
+	if baseURL == "" {
+		baseURL = "https://github.com"
+	}
+	return &GitHubRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+}
+func (r *GitHubRegistry) GetMetadata(name string) (*Metadata, error) {
 	// name is usually "owner/repo"
-	resp, err := r.client.Get(fmt.Sprintf("https://github.com/%s", name))
-	if err != nil { return false, err }
+	resp, err := r.client.Get(fmt.Sprintf("%s/%s", r.baseURL, name))
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	return &Metadata{Exists: resp.StatusCode == http.StatusOK}, nil
 }

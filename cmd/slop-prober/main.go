@@ -83,42 +83,12 @@ func main() {
 		log.Fatal("No providers configured in slopshield.yaml. Please add your API keys.")
 	}
 
-	var reg registry.Registry
-	var registryFile string
-	switch ecosystem {
-	case "npm":
-		reg = registry.NewNPMRegistry()
-		registryFile = "registry/npm.json"
-	case "pub":
-		reg = registry.NewPubRegistry()
-		registryFile = "registry/pub.json"
-	case "python":
-		reg = registry.NewPythonRegistry()
-		registryFile = "registry/python.json"
-	case "go":
-		reg = registry.NewGoRegistry()
-		registryFile = "registry/go.json"
-	case "rust":
-		reg = registry.NewRustRegistry()
-		registryFile = "registry/rust.json"
-	case "php":
-		reg = registry.NewPHPRegistry()
-		registryFile = "registry/php.json"
-	case "ruby":
-	        reg = registry.NewRubyRegistry()
-	        registryFile = "registry/ruby.json"
-	case "actions":
-	        reg = registry.NewGitHubRegistry()
-	        registryFile = "registry/actions.json"
-	case "maven":
-	        reg = registry.NewMavenRegistry()
-	        registryFile = "registry/maven.json"
-	case "nuget":
-	        reg = registry.NewNuGetRegistry()
-	        registryFile = "registry/nuget.json"
-	default:
-	        log.Fatalf("Unsupported ecosystem: %s", ecosystem)
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem))
+	if err != nil {
+		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
+	registryFile := fmt.Sprintf("registry/%s.json", ecosystem)
+	if ecosystem == "actions" { registryFile = "registry/actions.json" }
 	topics := []string{
 		"obscure quantum-resistant cryptographic layer",
 		"proprietary SAP-to-blockchain middleware",
@@ -243,8 +213,8 @@ func main() {
 	newCount := 0
 	for name := range candidates {
 		if existing[name] { continue }
-		exists, err := reg.Exists(name)
-		if err == nil && !exists {
+		meta, err := reg.GetMetadata(name)
+		if err == nil && !meta.Exists {
 			fmt.Printf("🚨 CONFIRMED HALLUCINATION: %s\n", name)
 			existing[name] = true
 			newCount++

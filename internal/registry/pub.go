@@ -3,34 +3,38 @@ package registry
 import (
 	"fmt"
 	"net/http"
-	"time"
+
+	"github.com/savisaar2/slopshield/internal/resilienthttp"
 )
 
 type PubRegistry struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
-func NewPubRegistry() *PubRegistry {
+func NewPubRegistry(baseURL string) *PubRegistry {
+	if baseURL == "" {
+		baseURL = "https://pub.dev/packages"
+	}
 	return &PubRegistry{
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		client:  resilienthttp.NewClient(),
+		baseURL: baseURL,
 	}
 }
 
-func (r *PubRegistry) Exists(name string) (bool, error) {
-	url := fmt.Sprintf("https://pub.dev/packages/%s", name)
+func (r *PubRegistry) GetMetadata(name string) (*Metadata, error) {
+	url := fmt.Sprintf("%s/%s", r.baseURL, name)
 	resp, err := r.client.Head(url)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		return true, nil
+		return &Metadata{Exists: true}, nil
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
+		return &Metadata{Exists: false}, nil
 	}
-	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }

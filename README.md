@@ -14,11 +14,13 @@ SlopShield is a local-first security tool designed to protect developers from "A
 
 ## 🚀 Key Features
 
+- **Typosquatting Detection**: Flags packages that are suspiciously close to popular libraries (e.g., `lodsh` vs `lodash`).
+- **In-Memory Caching**: Ultra-fast scanning for monorepos by caching registry lookups.
+- **Private Registry Support**: Point SlopShield to your internal Artifactory/Nexus to avoid false positives on private packages.
 - **Multi-Ecosystem Support**: Auto-detects and scans Node.js, Flutter, Python, Go, Rust, PHP, Ruby, Java, C#, and GitHub Actions.
 - **Multi-Engine Prober**: Automatically harvests new hallucinations across OpenAI, Anthropic, Gemini, and Ollama simultaneously to build your personal registry.
-- **Reputation Analysis**: Flags suspiciously new packages (less than 14 days old) even if they exist in the registry (available for npm, pypi, crates.io).
+- **Reputation Analysis**: Flags suspiciously new packages (configurable threshold) even if they exist in the registry.
 - **SARIF Integration**: Generates industry-standard reports for GitHub Security Tab and CI/CD pipelines.
-- **Local Intelligence**: Your hallucination database stays on your machine, updated by your own AI probing.
 
 ---
 
@@ -144,12 +146,13 @@ docker run --rm -v $(pwd):/scan slopshield scan /scan
 
 ---
 
-## 🧠 How it Works: Tiered Verification
+## 🧠 How it Works: Layered Detection
 
-SlopShield uses a **three-tier check** for every dependency:
+SlopShield uses a layered approach to verify every dependency:
 1.  **Local Registry**: Fast-check against known "slops" you've previously identified.
-2.  **Official Registry (The Truth Check)**: Queries the official source (e.g., npmjs.org). If it returns a 404, it's flagged.
-3.  **Reputation Check**: Even if it exists, if the package was created less than 14 days ago, it is flagged as suspicious.
+2.  **Typosquatting Check**: Identifies packages that mimic popular libraries (e.g., `requesst` vs `requests`).
+3.  **Official Registry (The Truth Check)**: Queries official sources (npmjs.org, pypi.org, etc.). If it returns a 404, it's flagged.
+4.  **Reputation Check**: Flags packages that are suspiciously new (default is < 14 days, configurable in `slopshield.yaml`).
 
 ---
 

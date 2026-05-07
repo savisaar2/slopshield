@@ -25,54 +25,25 @@ func main() {
 	ecosystem := args[0]
 	names := strings.Split(args[1], ",")
 
-	var reg registry.Registry
-	var registryFile string
-
-	if ecosystem == "npm" {
-		reg = registry.NewNPMRegistry()
-		registryFile = "registry/npm.json"
-	} else if ecosystem == "pub" {
-		reg = registry.NewPubRegistry()
-		registryFile = "registry/pub.json"
-	} else if ecosystem == "python" {
-		reg = registry.NewPythonRegistry()
-		registryFile = "registry/python.json"
-	} else if ecosystem == "go" {
-		reg = registry.NewGoRegistry()
-		registryFile = "registry/go.json"
-	} else if ecosystem == "rust" {
-		reg = registry.NewRustRegistry()
-		registryFile = "registry/rust.json"
-	} else if ecosystem == "php" {
-		reg = registry.NewPHPRegistry()
-		registryFile = "registry/php.json"
-	} else if ecosystem == "ruby" {
-	        reg = registry.NewRubyRegistry()
-	        registryFile = "registry/ruby.json"
-	} else if ecosystem == "actions" {
-	        reg = registry.NewGitHubRegistry()
-	        registryFile = "registry/actions.json"
-	} else if ecosystem == "maven" {
-	        reg = registry.NewMavenRegistry()
-	        registryFile = "registry/maven.json"
-	} else if ecosystem == "nuget" {
-	        reg = registry.NewNuGetRegistry()
-	        registryFile = "registry/nuget.json"
-	} else {
-	        log.Fatalf("Unsupported ecosystem: %s", ecosystem)
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem))
+	if err != nil {
+		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
+	registryFile := fmt.Sprintf("registry/%s.json", ecosystem)
+	if ecosystem == "actions" { registryFile = "registry/actions.json" }
+
 	hallucinations := make(map[string]bool)
 	fmt.Printf("🎯 Hunting for hallucinations in %s...\n", ecosystem)
 
 	for _, name := range names {
 		name = strings.TrimSpace(name)
-		exists, err := reg.Exists(name)
+		meta, err := reg.GetMetadata(name)
 		if err != nil {
 			fmt.Printf("⚠️  Error checking %s: %v\n", name, err)
 			continue
 		}
 
-		if !exists {
+		if !meta.Exists {
 			fmt.Printf("🚨 CONFIRMED HALLUCINATION: %s\n", name)
 			hallucinations[name] = true
 		} else {

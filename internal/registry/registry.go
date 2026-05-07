@@ -1,5 +1,12 @@
 package registry
 
+import "time"
+
+type Metadata struct {
+	Exists    bool
+	CreatedAt time.Time
+}
+
 type Registry interface {
-	Exists(name string) (bool, error)
+	GetMetadata(name string) (*Metadata, error)
 }

@@ -7,34 +7,29 @@ import (
 	"time"
 )
 
-func TestNPMRegistry_Exists(t *testing.T) {
+func TestNPMRegistry_GetMetadata(t *testing.T) {
 	tests := []struct {
 		name           string
 		packageName    string
 		serverResponse string
 		status         int
-		want           bool
+		wantExists     bool
+		checkCreated   bool
 	}{
 		{
-			name:           "package exists and is old",
+			name:           "package exists",
 			packageName:    "lodash",
 			status:         http.StatusOK,
 			serverResponse: `{"time": {"created": "2012-04-23T18:25:43.511Z"}}`,
-			want:           true,
-		},
-		{
-			name:           "package exists but is brand new",
-			packageName:    "suspicious-new-pkg",
-			status:         http.StatusOK,
-			serverResponse: `{"time": {"created": "` + time.Now().Format(time.RFC3339) + `"}}`,
-			want:           false,
+			wantExists:     true,
+			checkCreated:   true,
 		},
 		{
 			name:           "package does not exist",
 			packageName:    "non-existent-slop",
 			status:         http.StatusNotFound,
 			serverResponse: `{}`,
-			want:           false,
+			wantExists:     false,
 		},
 	}
 
@@ -46,19 +41,20 @@ func TestNPMRegistry_Exists(t *testing.T) {
 			}))
 			defer server.Close()
 
-			// We need to inject the mock server URL into the registry check
-			// For testing, we'll temporarily modify the registry check or use a helper
 			r := &NPMRegistry{
 				client:  &http.Client{Timeout: time.Second},
 				baseURL: server.URL,
 			}
 
-			got, err := r.Exists(tt.packageName)
+			meta, err := r.GetMetadata(tt.packageName)
 			if err != nil {
-				t.Fatalf("Exists() error = %v", err)
+				t.Fatalf("GetMetadata() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("Exists() got = %v, want %v", got, tt.want)
+			if meta.Exists != tt.wantExists {
+				t.Errorf("GetMetadata() Exists = %v, want %v", meta.Exists, tt.wantExists)
+			}
+			if tt.checkCreated && meta.CreatedAt.IsZero() {
+				t.Error("GetMetadata() expected non-zero CreatedAt")
 			}
 		})
 	}

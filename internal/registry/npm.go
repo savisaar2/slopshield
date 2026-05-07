@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/savisaar2/slopshield/internal/resilienthttp"
 )
 
 type NPMRegistry struct {
@@ -16,40 +18,37 @@ type NPMMetadata struct {
 	Time map[string]string `json:"time"`
 }
 
-func NewNPMRegistry() *NPMRegistry {
+func NewNPMRegistry(baseURL string) *NPMRegistry {
+	if baseURL == "" {
+		baseURL = "https://registry.npmjs.org"
+	}
 	return &NPMRegistry{
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		baseURL: "https://registry.npmjs.org",
+		client:  resilienthttp.NewClient(),
+		baseURL: baseURL,
 	}
 }
 
-func (r *NPMRegistry) Exists(name string) (bool, error) {
+func (r *NPMRegistry) GetMetadata(name string) (*Metadata, error) {
 	url := fmt.Sprintf("%s/%s", r.baseURL, name)
 	resp, err := r.client.Get(url)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
+		return &Metadata{Exists: false}, nil
 	}
 
 	if resp.StatusCode == http.StatusOK {
 		var meta NPMMetadata
+		var createdAt time.Time
 		if err := json.NewDecoder(resp.Body).Decode(&meta); err == nil {
 			if created, ok := meta.Time["created"]; ok {
-				t, _ := time.Parse(time.RFC3339, created)
-				// If the package is less than 14 days old, we still consider it "suspicious" 
-				// even if it exists, as it might be an attacker-registered hallucination.
-				if time.Since(t) < 14*24*time.Hour {
-					return false, nil // Treat as "not reputable"
-				}
+				createdAt, _ = time.Parse(time.RFC3339, created)
 			}
 		}
-		return true, nil
+		return &Metadata{Exists: true, CreatedAt: createdAt}, nil
 	}
-	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }
