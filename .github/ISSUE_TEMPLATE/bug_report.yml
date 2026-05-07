@@ -1,0 +1,38 @@
+name: Bug Report
+description: Report a bug in SlopShield's detection or CLI logic
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please provide as much detail as possible to help us reproduce the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      placeholder: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Create a package.json with...
+        2. Run 'slopshield scan .'
+        3. See error...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: SlopShield Version
+      placeholder: e.g., v1.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Run with --verbose and paste the output here.
+      render: shell
