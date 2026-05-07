@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ type mockRegistry struct {
 	meta map[string]*registry.Metadata
 }
 
-func (m *mockRegistry) GetMetadata(name string) (*registry.Metadata, error) {
+func (m *mockRegistry) GetMetadata(ctx context.Context, name string) (*registry.Metadata, error) {
 	if meta, ok := m.meta[name]; ok {
 		return meta, nil
 	}
@@ -35,10 +36,14 @@ func TestEngine_Evaluate(t *testing.T) {
 		Config: &config.Config{
 			ReputationAgeDays:   14,
 			EnableTyposquatting: true,
+			TyposquattingTargets: map[string][]string{
+				"npm": {"my-private-pkg"},
+			},
 		},
 		KnownHallucinations: map[string]bool{"known-slop": true},
 		IgnoreList:          &slopignore.IgnoreList{},
 	}
+	ctx := context.Background()
 
 	tests := []struct {
 		name        string
@@ -75,18 +80,25 @@ func TestEngine_Evaluate(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:        "Typosquatting Package",
+			name:        "Typosquatting Package (Default List)",
 			dep:         scanner.Dependency{Name: "lodsh"}, // Close to lodash
 			expected:    true,
 			isTyposquat: true,
 			reason:      "Potential typosquatting of popular package 'lodash'",
+		},
+		{
+			name:        "Typosquatting Package (Config List)",
+			dep:         scanner.Dependency{Name: "my-private-pk"}, // Close to my-private-pkg
+			expected:    true,
+			isTyposquat: true,
+			reason:      "Potential typosquatting of popular package 'my-private-pkg'",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reg := &mockRegistry{meta: map[string]*registry.Metadata{tt.dep.Name: tt.meta}}
-			isSlop, isTypo, reason := e.evaluate(tt.dep, reg, registry.EcosystemNPM)
+			isSlop, isTypo, reason := e.evaluate(ctx, tt.dep, reg, registry.EcosystemNPM)
 			if isSlop != tt.expected {
 				t.Errorf("evaluate() isSlop = %v, expected %v", isSlop, tt.expected)
 			}
@@ -104,12 +116,13 @@ func TestEngine_Cache(t *testing.T) {
 	e := &Engine{
 		Config: &config.Config{},
 	}
+	ctx := context.Background()
 	dep := scanner.Dependency{Name: "cached-pkg"}
 	meta := &registry.Metadata{Exists: true}
 	reg := &mockRegistry{meta: map[string]*registry.Metadata{dep.Name: meta}}
 
 	// First call - should hit registry
-	isSlop, _, _ := e.evaluate(dep, reg, registry.EcosystemNPM)
+	isSlop, _, _ := e.evaluate(ctx, dep, reg, registry.EcosystemNPM)
 	if isSlop {
 		t.Error("expected not slop")
 	}
@@ -121,7 +134,7 @@ func TestEngine_Cache(t *testing.T) {
 
 	// Second call - should hit cache (registry doesn't matter)
 	regEmpty := &mockRegistry{meta: make(map[string]*registry.Metadata)}
-	isSlop, _, _ = e.evaluate(dep, regEmpty, registry.EcosystemNPM)
+	isSlop, _, _ = e.evaluate(ctx, dep, regEmpty, registry.EcosystemNPM)
 	if isSlop {
 		t.Error("expected not slop from cache")
 	}

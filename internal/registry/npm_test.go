@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -46,7 +47,7 @@ func TestNPMRegistry_GetMetadata(t *testing.T) {
 				baseURL: server.URL,
 			}
 
-			meta, err := r.GetMetadata(tt.packageName)
+			meta, err := r.GetMetadata(context.Background(), tt.packageName)
 			if err != nil {
 				t.Fatalf("GetMetadata() error = %v", err)
 			}

@@ -2,6 +2,8 @@ package registry
 
 import (
 	"fmt"
+
+	"golang.org/x/time/rate"
 )
 
 type Ecosystem string
@@ -19,28 +21,28 @@ const (
 	EcosystemNuGet  Ecosystem = "nuget"
 )
 
-func GetRegistry(ecosystem Ecosystem, baseURL string) (Registry, error) {
+func GetRegistry(ecosystem Ecosystem, baseURL string, limiter *rate.Limiter) (Registry, error) {
 	switch ecosystem {
 	case EcosystemNPM:
-		return NewNPMRegistry(baseURL), nil
+		return NewNPMRegistry(baseURL, limiter), nil
 	case EcosystemPub:
-		return NewPubRegistry(baseURL), nil
+		return NewPubRegistry(baseURL, limiter), nil
 	case EcosystemPython:
-		return NewPythonRegistry(baseURL), nil
+		return NewPythonRegistry(baseURL, limiter), nil
 	case EcosystemGo:
-		return NewGoRegistry(baseURL), nil
+		return NewGoRegistry(baseURL, limiter), nil
 	case EcosystemRust:
-		return NewRustRegistry(baseURL), nil
+		return NewRustRegistry(baseURL, limiter), nil
 	case EcosystemPHP:
-		return NewPHPRegistry(baseURL), nil
+		return NewPHPRegistry(baseURL, limiter), nil
 	case EcosystemRuby:
-		return NewRubyRegistry(baseURL), nil
+		return NewRubyRegistry(baseURL, limiter), nil
 	case EcosystemGitHub:
-		return NewGitHubRegistry(baseURL), nil
+		return NewGitHubRegistry(baseURL, limiter), nil
 	case EcosystemMaven:
-		return NewMavenRegistry(baseURL), nil
+		return NewMavenRegistry(baseURL, limiter), nil
 	case EcosystemNuGet:
-		return NewNuGetRegistry(baseURL), nil
+		return NewNuGetRegistry(baseURL, limiter), nil
 	default:
 		return nil, fmt.Errorf("unsupported ecosystem: %s", ecosystem)
 	}

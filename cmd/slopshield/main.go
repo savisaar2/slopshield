@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/savisaar2/slopshield/internal/config"
 	"github.com/savisaar2/slopshield/internal/engine"
@@ -56,7 +59,10 @@ var (
 				return fmt.Errorf("failed to initialize engine: %w", err)
 			}
 
-			results, err := eng.Scan(context.Background(), path)
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			results, err := eng.Scan(ctx, path)
 			if err != nil {
 				return fmt.Errorf("scan failed: %w", err)
 			}
@@ -69,6 +75,15 @@ var (
 				if err := sarif.Generate(os.Stdout, names, "manifest"); err != nil {
 					return fmt.Errorf("error generating SARIF: %w", err)
 				}
+				return nil
+			}
+
+			if output == "json" {
+				data, err := json.MarshalIndent(results, "", "  ")
+				if err != nil {
+					return fmt.Errorf("error generating JSON: %w", err)
+				}
+				fmt.Println(string(data))
 				return nil
 			}
 
@@ -127,7 +142,7 @@ func init() {
 	rootCmd.AddCommand(registryCmd)
 	registryCmd.AddCommand(clearRegistryCmd)
 
-	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif)")
+	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif, json)")
 }
 
 func main() {

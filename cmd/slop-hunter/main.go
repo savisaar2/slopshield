@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -33,7 +34,7 @@ func main() {
 	}
 
 	baseURL := cfg.PrivateRegistries[ecosystem]
-	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL)
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL, nil)
 	if err != nil {
 		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
@@ -43,9 +44,10 @@ func main() {
 	hallucinations := make(map[string]bool)
 	fmt.Printf("🎯 Hunting for hallucinations in %s...\n", ecosystem)
 
+	ctx := context.Background()
 	for _, name := range names {
 		name = strings.TrimSpace(name)
-		meta, err := reg.GetMetadata(name)
+		meta, err := reg.GetMetadata(ctx, name)
 		if err != nil {
 			fmt.Printf("⚠️  Error checking %s: %v\n", name, err)
 			continue

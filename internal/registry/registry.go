@@ -1,6 +1,9 @@
 package registry
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type Metadata struct {
 	Exists    bool
@@ -8,5 +11,5 @@ type Metadata struct {
 }
 
 type Registry interface {
-	GetMetadata(name string) (*Metadata, error)
+	GetMetadata(ctx context.Context, name string) (*Metadata, error)
 }

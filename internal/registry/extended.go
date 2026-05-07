@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,21 +9,28 @@ import (
 	"time"
 
 	"github.com/savisaar2/slopshield/internal/resilienthttp"
+	"golang.org/x/time/rate"
 )
 
 // Rust
 type RustRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewRustRegistry(baseURL string) *RustRegistry {
+func NewRustRegistry(baseURL string, limiter *rate.Limiter) *RustRegistry {
 	if baseURL == "" {
 		baseURL = "https://crates.io/api/v1/crates"
 	}
-	return &RustRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &RustRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *RustRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *RustRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	resp, err := r.client.Get(fmt.Sprintf("%s/%s", r.baseURL, name))
 	if err != nil {
 		return nil, err
@@ -48,15 +56,21 @@ func (r *RustRegistry) GetMetadata(name string) (*Metadata, error) {
 type PHPRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewPHPRegistry(baseURL string) *PHPRegistry {
+func NewPHPRegistry(baseURL string, limiter *rate.Limiter) *PHPRegistry {
 	if baseURL == "" {
 		baseURL = "https://packagist.org/packages"
 	}
-	return &PHPRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &PHPRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *PHPRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *PHPRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	// Packagist requires vendor/package format. If not provided, it's definitely a slop
 	if !strings.Contains(name, "/") {
 		return &Metadata{Exists: false}, nil
@@ -73,15 +87,21 @@ func (r *PHPRegistry) GetMetadata(name string) (*Metadata, error) {
 type RubyRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewRubyRegistry(baseURL string) *RubyRegistry {
+func NewRubyRegistry(baseURL string, limiter *rate.Limiter) *RubyRegistry {
 	if baseURL == "" {
 		baseURL = "https://rubygems.org/api/v1/gems"
 	}
-	return &RubyRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &RubyRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *RubyRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *RubyRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	resp, err := r.client.Get(fmt.Sprintf("%s/%s.json", r.baseURL, name))
 	if err != nil {
 		return nil, err
@@ -94,15 +114,21 @@ func (r *RubyRegistry) GetMetadata(name string) (*Metadata, error) {
 type NuGetRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewNuGetRegistry(baseURL string) *NuGetRegistry {
+func NewNuGetRegistry(baseURL string, limiter *rate.Limiter) *NuGetRegistry {
 	if baseURL == "" {
 		baseURL = "https://api.nuget.org/v3-flatcontainer"
 	}
-	return &NuGetRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &NuGetRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *NuGetRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *NuGetRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	resp, err := r.client.Get(fmt.Sprintf("%s/%s/index.json", r.baseURL, name))
 	if err != nil {
 		return nil, err
@@ -115,15 +141,21 @@ func (r *NuGetRegistry) GetMetadata(name string) (*Metadata, error) {
 type MavenRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewMavenRegistry(baseURL string) *MavenRegistry {
+func NewMavenRegistry(baseURL string, limiter *rate.Limiter) *MavenRegistry {
 	if baseURL == "" {
 		baseURL = "https://search.maven.org/solrsearch/select"
 	}
-	return &MavenRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &MavenRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *MavenRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *MavenRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	// Maven search API
 	url := fmt.Sprintf("%s?q=a:%s&rows=1&wt=json", r.baseURL, name)
 	resp, err := r.client.Get(url)
@@ -142,15 +174,21 @@ func (r *MavenRegistry) GetMetadata(name string) (*Metadata, error) {
 type GitHubRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewGitHubRegistry(baseURL string) *GitHubRegistry {
+func NewGitHubRegistry(baseURL string, limiter *rate.Limiter) *GitHubRegistry {
 	if baseURL == "" {
 		baseURL = "https://github.com"
 	}
-	return &GitHubRegistry{client: resilienthttp.NewClient(), baseURL: baseURL}
+	return &GitHubRegistry{client: resilienthttp.NewClient(), baseURL: baseURL, limiter: limiter}
 }
-func (r *GitHubRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *GitHubRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
 	// name is usually "owner/repo"
 	resp, err := r.client.Get(fmt.Sprintf("%s/%s", r.baseURL, name))
 	if err != nil {

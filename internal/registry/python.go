@@ -1,32 +1,47 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/savisaar2/slopshield/internal/resilienthttp"
+	"golang.org/x/time/rate"
 )
 
 type PythonRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
-func NewPythonRegistry(baseURL string) *PythonRegistry {
+func NewPythonRegistry(baseURL string, limiter *rate.Limiter) *PythonRegistry {
 	if baseURL == "" {
 		baseURL = "https://pypi.org/pypi"
 	}
 	return &PythonRegistry{
 		client:  resilienthttp.NewClient(),
 		baseURL: baseURL,
+		limiter: limiter,
 	}
 }
 
-func (r *PythonRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *PythonRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	url := fmt.Sprintf("%s/%s/json", r.baseURL, name)
-	resp, err := r.client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

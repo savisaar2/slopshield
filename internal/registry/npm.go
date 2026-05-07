@@ -1,36 +1,51 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/savisaar2/slopshield/internal/resilienthttp"
+	"golang.org/x/time/rate"
 )
 
 type NPMRegistry struct {
 	client  *http.Client
 	baseURL string
+	limiter *rate.Limiter
 }
 
 type NPMMetadata struct {
 	Time map[string]string `json:"time"`
 }
 
-func NewNPMRegistry(baseURL string) *NPMRegistry {
+func NewNPMRegistry(baseURL string, limiter *rate.Limiter) *NPMRegistry {
 	if baseURL == "" {
 		baseURL = "https://registry.npmjs.org"
 	}
 	return &NPMRegistry{
 		client:  resilienthttp.NewClient(),
 		baseURL: baseURL,
+		limiter: limiter,
 	}
 }
 
-func (r *NPMRegistry) GetMetadata(name string) (*Metadata, error) {
+func (r *NPMRegistry) GetMetadata(ctx context.Context, name string) (*Metadata, error) {
+	if r.limiter != nil {
+		if err := r.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	url := fmt.Sprintf("%s/%s", r.baseURL, name)
-	resp, err := r.client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

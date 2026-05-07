@@ -7,6 +7,18 @@ registry_url: "https://raw.githubusercontent.com/YOUR_USERNAME/slopshield/main/r
 reputation_age_days: 14
 enable_typosquatting: true
 
+# Protect specific internal packages from typosquatting
+typosquatting_targets:
+  npm:
+    - "my-internal-auth"
+    - "core-utils-pro"
+
+# Polite rate limiting (requests per second)
+rate_limits:
+  npm: 5.0
+  python: 3.0
+  go: 10.0
+
 # Custom registry URLs for private packages
 private_registries:
   npm: "https://registry.npmjs.org"

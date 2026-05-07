@@ -15,6 +15,7 @@ import (
 	"github.com/savisaar2/slopshield/internal/scanner"
 	"github.com/savisaar2/slopshield/internal/slopignore"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 )
 
 type Result struct {
@@ -30,6 +31,8 @@ type Engine struct {
 	IgnoreList          *slopignore.IgnoreList
 	Concurrency         int
 	Cache               sync.Map // Cache for registry.Metadata
+	limiters            map[registry.Ecosystem]*rate.Limiter
+	limitersMu          sync.Mutex
 }
 
 func NewEngine(path string, cfg *config.Config) (*Engine, error) {
@@ -65,7 +68,26 @@ func NewEngine(path string, cfg *config.Config) (*Engine, error) {
 		KnownHallucinations: known,
 		IgnoreList:          ignoreList,
 		Concurrency:         10,
+		limiters:            make(map[registry.Ecosystem]*rate.Limiter),
 	}, nil
+}
+
+func (e *Engine) getLimiter(eco registry.Ecosystem) *rate.Limiter {
+	e.limitersMu.Lock()
+	defer e.limitersMu.Unlock()
+
+	if l, ok := e.limiters[eco]; ok {
+		return l
+	}
+
+	limit := rate.Inf
+	if r, ok := e.Config.RateLimits[string(eco)]; ok && r > 0 {
+		limit = rate.Limit(r)
+	}
+
+	l := rate.NewLimiter(limit, 1)
+	e.limiters[eco] = l
+	return l
 }
 
 func (e *Engine) Scan(ctx context.Context, path string) ([]Result, error) {
@@ -74,7 +96,7 @@ func (e *Engine) Scan(ctx context.Context, path string) ([]Result, error) {
 		return nil, err
 	}
 
-	var results []Result
+	results := []Result{}
 	var mu sync.Mutex
 
 	for _, info := range scannerInfos {
@@ -85,13 +107,14 @@ func (e *Engine) Scan(ctx context.Context, path string) ([]Result, error) {
 		}
 
 		baseURL := e.Config.PrivateRegistries[string(info.Ecosystem)]
-		reg, err := registry.GetRegistry(info.Ecosystem, baseURL)
+		limiter := e.getLimiter(info.Ecosystem)
+		reg, err := registry.GetRegistry(info.Ecosystem, baseURL, limiter)
 		if err != nil {
 			slog.Warn("No registry found for ecosystem", "ecosystem", info.Ecosystem)
 			continue
 		}
 
-		g, _ := errgroup.WithContext(ctx)
+		g, gCtx := errgroup.WithContext(ctx)
 		g.SetLimit(e.Concurrency)
 
 		for _, dep := range deps {
@@ -101,7 +124,7 @@ func (e *Engine) Scan(ctx context.Context, path string) ([]Result, error) {
 					return nil
 				}
 
-				isSlop, isTyposquat, reason := e.evaluate(dep, reg, info.Ecosystem)
+				isSlop, isTyposquat, reason := e.evaluate(gCtx, dep, reg, info.Ecosystem)
 				if isSlop {
 					mu.Lock()
 					results = append(results, Result{Dependency: dep, IsSlop: true, IsTyposquat: isTyposquat, Reason: reason})
@@ -127,7 +150,7 @@ func (e *Engine) isIgnored(dep scanner.Dependency) bool {
 	return e.IgnoreList.IsIgnored(dep.Name)
 }
 
-func (e *Engine) evaluate(dep scanner.Dependency, reg registry.Registry, eco registry.Ecosystem) (bool, bool, string) {
+func (e *Engine) evaluate(ctx context.Context, dep scanner.Dependency, reg registry.Registry, eco registry.Ecosystem) (bool, bool, string) {
 	// 1. Check known slops
 	if e.KnownHallucinations[dep.Name] {
 		return true, false, "Known hallucination in local registry"
@@ -145,8 +168,8 @@ func (e *Engine) evaluate(dep scanner.Dependency, reg registry.Registry, eco reg
 		return e.checkMetadata(dep, meta)
 	}
 
-	// 3. Check upstream registry
-	meta, err := reg.GetMetadata(dep.Name)
+	// 4. Check upstream registry
+	meta, err := reg.GetMetadata(ctx, dep.Name)
 	if err != nil {
 		slog.Warn("Error checking registry", "package", dep.Name, "error", err)
 		return false, false, ""
@@ -159,11 +182,14 @@ func (e *Engine) evaluate(dep scanner.Dependency, reg registry.Registry, eco reg
 }
 
 func (e *Engine) checkMetadata(dep scanner.Dependency, meta *registry.Metadata) (bool, bool, string) {
+	if meta == nil {
+		return false, false, ""
+	}
 	if !meta.Exists {
 		return true, false, "Package does not exist in official registry"
 	}
 
-	// 4. Reputation Check
+	// 5. Reputation Check
 	if e.Config.ReputationAgeDays > 0 && !meta.CreatedAt.IsZero() {
 		if time.Since(meta.CreatedAt) < time.Duration(e.Config.ReputationAgeDays)*24*time.Hour {
 			return true, false, fmt.Sprintf("Suspiciously new package (created %s)", meta.CreatedAt.Format("2006-01-02"))

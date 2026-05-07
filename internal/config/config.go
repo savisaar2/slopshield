@@ -7,11 +7,13 @@ import (
 )
 
 type Config struct {
-	RegistryURL         string            `yaml:"registry_url"`
-	RegistryPath        string            `yaml:"registry_path"` // Local directory for .json files
-	ReputationAgeDays   int               `yaml:"reputation_age_days"`
-	EnableTyposquatting bool              `yaml:"enable_typosquatting"`
-	PrivateRegistries   map[string]string `yaml:"private_registries"`
+	RegistryURL         string              `yaml:"registry_url"`
+	RegistryPath        string              `yaml:"registry_path"` // Local directory for .json files
+	ReputationAgeDays   int                 `yaml:"reputation_age_days"`
+	EnableTyposquatting bool                `yaml:"enable_typosquatting"`
+	PrivateRegistries   map[string]string   `yaml:"private_registries"`
+	RateLimits          map[string]float64  `yaml:"rate_limits"`
+	TyposquattingTargets map[string][]string `yaml:"typosquatting_targets"`
 	Providers           struct {
 		OpenAI    string `yaml:"openai_api_key"`
 		Anthropic string `yaml:"anthropic_api_key"`
@@ -30,6 +32,8 @@ func Load() (*Config, error) {
 	cfg.ReputationAgeDays = 14
 	cfg.EnableTyposquatting = true
 	cfg.PrivateRegistries = make(map[string]string)
+	cfg.RateLimits = make(map[string]float64)
+	cfg.TyposquattingTargets = make(map[string][]string)
 
 	data, err := os.ReadFile("slopshield.yaml")
 	if err == nil {

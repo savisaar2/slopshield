@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -84,7 +85,7 @@ func main() {
 	}
 
 	baseURL := cfg.PrivateRegistries[ecosystem]
-	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL)
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL, nil)
 	if err != nil {
 		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
@@ -212,9 +213,10 @@ func main() {
 	}
 
 	newCount := 0
+	ctx := context.Background()
 	for name := range candidates {
 		if existing[name] { continue }
-		meta, err := reg.GetMetadata(name)
+		meta, err := reg.GetMetadata(ctx, name)
 		if err == nil && !meta.Exists {
 			fmt.Printf("🚨 CONFIRMED HALLUCINATION: %s\n", name)
 			existing[name] = true

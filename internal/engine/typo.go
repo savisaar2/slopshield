@@ -59,8 +59,12 @@ func (e *Engine) checkTyposquat(name string, eco registry.Ecosystem) (bool, stri
 		return false, ""
 	}
 
-	popular := popularPackages[eco]
-	for _, p := range popular {
+	targets := popularPackages[eco]
+	if custom := e.Config.TyposquattingTargets[string(eco)]; len(custom) > 0 {
+		targets = append(targets, custom...)
+	}
+
+	for _, p := range targets {
 		if name == p {
 			return false, ""
 		}
