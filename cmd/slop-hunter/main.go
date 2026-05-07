@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/savisaar2/slopshield/internal/config"
 	"github.com/savisaar2/slopshield/internal/registry"
 )
 
@@ -25,7 +26,14 @@ func main() {
 	ecosystem := args[0]
 	names := strings.Split(args[1], ",")
 
-	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem))
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	baseURL := cfg.PrivateRegistries[ecosystem]
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL)
 	if err != nil {
 		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}

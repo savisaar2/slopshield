@@ -83,7 +83,8 @@ func main() {
 		log.Fatal("No providers configured in slopshield.yaml. Please add your API keys.")
 	}
 
-	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem))
+	baseURL := cfg.PrivateRegistries[ecosystem]
+	reg, err := registry.GetRegistry(registry.Ecosystem(ecosystem), baseURL)
 	if err != nil {
 		log.Fatalf("Unsupported ecosystem: %s", ecosystem)
 	}
