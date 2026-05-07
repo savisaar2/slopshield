@@ -1,1 +1,7 @@
-{}
+{
+  "express-gpt": true,
+  "react-ai-core": true,
+  "lodash-cloud": true,
+  "tailwind-dynamic": true,
+  "axios-hooks-pro": true
+}

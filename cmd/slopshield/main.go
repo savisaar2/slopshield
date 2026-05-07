@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -43,6 +44,13 @@ var (
 			}
 
 			output, _ := cmd.Flags().GetString("output")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+
+			level := slog.LevelInfo
+			if verbose {
+				level = slog.LevelDebug
+			}
+			slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
 
 			if output == "text" {
 				fmt.Println(styleTitle.Render("🛡️  SLOPSHIELD: AI Hallucination Guard"))
@@ -143,6 +151,7 @@ func init() {
 	registryCmd.AddCommand(clearRegistryCmd)
 
 	scanCmd.Flags().StringP("output", "o", "text", "Output format (text, sarif, json)")
+	scanCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
 }
 
 func main() {

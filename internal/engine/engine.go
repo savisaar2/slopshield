@@ -151,24 +151,30 @@ func (e *Engine) isIgnored(dep scanner.Dependency) bool {
 }
 
 func (e *Engine) evaluate(ctx context.Context, dep scanner.Dependency, reg registry.Registry, eco registry.Ecosystem) (bool, bool, string) {
+	slog.Debug("Evaluating dependency", "name", dep.Name, "ecosystem", eco)
+
 	// 1. Check known slops
 	if e.KnownHallucinations[dep.Name] {
+		slog.Debug("Flagged via local registry", "name", dep.Name)
 		return true, false, "Known hallucination in local registry"
 	}
 
 	// 2. Typosquatting Check
 	if isTypo, target := e.checkTyposquat(dep.Name, eco); isTypo {
+		slog.Debug("Flagged via typosquatting", "name", dep.Name, "target", target)
 		return true, true, fmt.Sprintf("Potential typosquatting of popular package '%s'", target)
 	}
 
 	// 3. Check Cache
 	cacheKey := string(eco) + ":" + dep.Name
 	if val, ok := e.Cache.Load(cacheKey); ok {
+		slog.Debug("Cache hit", "name", dep.Name)
 		meta := val.(*registry.Metadata)
 		return e.checkMetadata(dep, meta)
 	}
 
 	// 4. Check upstream registry
+	slog.Debug("Registry lookup", "name", dep.Name)
 	meta, err := reg.GetMetadata(ctx, dep.Name)
 	if err != nil {
 		slog.Warn("Error checking registry", "package", dep.Name, "error", err)

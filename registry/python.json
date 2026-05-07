@@ -1,1 +1,7 @@
-{}
+{
+  "django-gpt": true,
+  "flask-ai-engine": true,
+  "numpy-cloud": true,
+  "pandas-pro": true,
+  "requests-async-v2": true
+}

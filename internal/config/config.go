@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -64,6 +65,18 @@ func Load() (*Config, error) {
 	}
 	if env := os.Getenv("OLLAMA_MODEL"); env != "" {
 		cfg.Providers.Ollama.Model = env
+	}
+
+	// Detection overrides
+	if env := os.Getenv("SLOPSHIELD_REPUTATION_AGE"); env != "" {
+		if val, err := strconv.Atoi(env); err == nil {
+			cfg.ReputationAgeDays = val
+		}
+	}
+	if env := os.Getenv("SLOPSHIELD_ENABLE_TYPOSQUATTING"); env != "" {
+		if val, err := strconv.ParseBool(env); err == nil {
+			cfg.EnableTyposquatting = val
+		}
 	}
 
 	return &cfg, nil
